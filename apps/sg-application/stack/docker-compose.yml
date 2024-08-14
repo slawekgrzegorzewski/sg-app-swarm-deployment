@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+
+  test:
+    image: ubuntu
+    command: >
+      /bin/bash -c "echo a >> /home/a/a.txt"
+    deploy:
+      mode: replicated
+      replicas: 0
+      labels:
+        - "swarm.cronjob.enable=true"
+        - "swarm.cronjob.schedule=* * * * *"
+        - "swarm.cronjob.skip-running=false"
+      restart_policy:
+        condition: none
+    volumes:
+      - /home/slawek/Cluster/sg-application/management:/home/a
+
+  backend:
+    image: grzegorzewski.org:5005/backend:latest
+    container_name: backend
+    ports:
+      - 8080:8080
+    environment:
+      spring_profiles_active: http,S3Storage
+    configs:
+      - source: application.yml
+        target: /app/application.yml
+    secrets:
+      - jwt_secret_code
+      - sendgrid_api_key
+      - nordigen_secret_id
+      - nordigen_secret_key
+      - postgres_password
+      - aws_access_key_id
+      - aws_secret_access_key
+      - aws_region
+      - random_org_api_key
+    deploy:
+      placement:
+        constraints:
+          - node.hostname!=rpi3
+    volumes:
+      - $APPLICATION_CONFIG_DIR/logback.xml:/app/logback.xml:ro
+      - $SG_APPLICATION_LOGS_DIR:/app/logs/
+      - $SG_APPLICATION_BIBLE_FILES_DIR:/app/bibleFiles/
+    networks:
+      - sg_app_network
+
+  gateway:
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: eu-central-1
+        awslogs-group: app
+        awslogs-stream: sg-application-gw
+        awslogs-create-group: 'true'
+    image: nginx:1.25.4-bookworm
+    container_name: nginx
+    ports:
+      - 443:443
+    secrets:
+      - sgapplication.crt
+      - sgapplication.key
+    volumes:
+      - $APPLICATION_CONFIG_DIR/nginx.conf:/etc/nginx/nginx.conf:ro
+      - $SG_APPLICATION_GATEWAY_DIR:/usr/share/nginx:ro
+    networks:
+      - sg_app_network
+
+configs:
+  application.yml:
+    template_driver: golang
+    file: config/application.yml.tmpl
+    name: myapp.application.yml${CONFIG_VERSION:-0}
+    
+secrets:
+  jwt_secret_code:
+    external: true
+  sendgrid_api_key:
+    external: true
+  nordigen_secret_id:
+    external: true
+  nordigen_secret_key:
+    external: true
+  postgres_password:
+    external: true
+  aws_access_key_id:
+    external: true
+  aws_secret_access_key:
+    external: true
+  aws_region:
+    external: true
+  random_org_api_key:
+    external: true
+  sgapplication.crt:
+    file: $SECRETS_DIR/certs/sgapplication.crt
+  sgapplication.key:
+    file: $SECRETS_DIR/certs/sgapplication.key
+
+networks:
+  sg_app_network:
+    name: sg_app_network
+    external: true

@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+
+  database:
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: eu-central-1
+        awslogs-group: app
+        awslogs-stream: db
+        awslogs-create-group: 'true'
+    image: postgres:15.6
+    ports:
+      - 5432:5432
+    restart: always
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    deploy:
+      placement:
+        constraints:
+          - node.hostname==rpi4
+    secrets:
+      - postgres_password
+    volumes:
+      - $POSTGRES_DATA_DIR:/var/lib/postgresql/data
+      - $DATABASE_BACKUP_DIR:/backup
+    networks:
+      - sg_app_network
+      - cluster_network
+
+secrets:
+  postgres_password:
+    external: true
+
+networks:
+  sg_app_network:
+    name: sg_app_network
+  cluster_network:
+    external: true

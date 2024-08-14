@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+
+  swarm-cronjob:
+    image: crazymax/swarm-cronjob
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    environment:
+      - "TZ=Europe/Warsaw"
+      - "LOG_LEVEL=info"
+      - "LOG_JSON=false"
+    deploy:
+      placement:
+        constraints:
+          - node.role==manager
+
+  gateway:
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: eu-central-1
+        awslogs-group: app
+        awslogs-stream: core-gw
+        awslogs-create-group: 'true'
+    image: nginx:1.25.4-bookworm
+    container_name: nginx
+    ports:
+      - 80:80
+      - 5005:5005
+    secrets:
+      - sgapplication.crt
+      - sgapplication.key
+    volumes:
+      - $CORE_CONFIG_DIR/nginx.conf:/etc/nginx/nginx.conf:ro
+      - $CORE_CONFIG_DIR/htpasswd:/auth/htpasswd:ro
+      - $CORE_GATEWAY_HTML_DIR:/usr/share/nginx:ro
+    networks:
+      - cluster_network
+    depends_on:
+      - registry-server
+      - registry-ui
+
+  registry-server:
+    image: registry:2.8.3
+    container_name: registry
+    ports:
+      - 5000:5000
+    volumes:
+      - $CORE_REGISTRY_DATA_DIR:/var/lib/registry
+    environment:
+      REGISTRY_HTTP_HEADERS_Access-Control-Allow-Origin: '[http://rpi5:4080]'
+      REGISTRY_HTTP_HEADERS_Access-Control-Allow-Methods: '[HEAD,GET,OPTIONS,DELETE]'
+      REGISTRY_HTTP_HEADERS_Access-Control-Allow-Credentials: '[true]'
+      REGISTRY_HTTP_HEADERS_Access-Control-Allow-Headers: '[Authorization,Accept,Cache-Control]'
+      REGISTRY_HTTP_HEADERS_Access-Control-Expose-Headers: '[Docker-Content-Digest]'
+      REGISTRY_STORAGE_DELETE_ENABLED: 'true'
+    restart: always
+    networks:
+      - cluster_network
+
+  registry-ui:
+    image: joxit/docker-registry-ui:2.5.7
+    ports:
+      - 4080:80
+    environment:
+      REGISTRY_TITLE: My Private Docker Registry
+      REGISTRY_URL: http://rpi5:5000
+      SINGLE_REGISTRY: 'true'
+      DELETE_IMAGES: 'true'
+    depends_on:
+      - registry-server
+    networks:
+      - cluster_network
+    
+secrets:
+  sgapplication.crt:
+    file: $SECRETS_DIR/certs/sgapplication.crt
+  sgapplication.key:
+    file: $SECRETS_DIR/certs/sgapplication.key
+
+networks:
+  cluster_network:
+    name: cluster_network

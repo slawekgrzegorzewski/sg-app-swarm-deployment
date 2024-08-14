@@ -1,0 +1,48 @@
+spring:
+  datasource:
+    hikari:
+      connectionTimeout: 15000
+      maximumPoolSize: 5
+    password: {{ secret "postgres_password" }}
+    url: jdbc:postgresql://db_database:5432/accountant
+    username: postgres
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          lob:
+            non_contextual_creation: true
+  jooq:
+    sql-dialect: POSTGRES
+  main:
+    banner-mode: off
+  sql:
+    init:
+      mode: always
+
+server:
+  port: 8080
+
+nodrigen:
+  service-url: https://bankaccountdata.gocardless.com/api/v2/
+
+random-org:
+  url: https://api.random.org/json-rpc/4/invoke
+
+cron:
+  fetch-accounts: "0 15 11,15,17 * * *"
+  fetch-accounts-monthly: "0 58 23 * * *"
+  fetch-transactions: "0 20 11,15,17 * * *"
+
+aws:
+  intellectual-property-task:
+    attachments:
+      bucket-name: intellectualpropertytask
+
+
+pjm:
+  videos-location: /app/bibleFiles
+  fetch: "0 0 17 * * *"
