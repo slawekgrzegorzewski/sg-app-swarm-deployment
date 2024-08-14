@@ -30,7 +30,7 @@ jobs:
         run: |
            gradle dockerPackageRpi4
            mv build/distributions/dockerRpi4.zip .
-           cp dev-ops/apps/utils/update_cluster.sh .
+           cp apps/utils/update_cluster.sh .
 
       - name: copy dockerRpi4.zip via ssh password
         uses: appleboy/scp-action@master
