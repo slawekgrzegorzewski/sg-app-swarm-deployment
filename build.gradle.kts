@@ -14,6 +14,7 @@ val infrastructureRpi4 = tasks.register<Zip>("infrastructureRpi4") {
 }
 
 val dockerPackageRpi4 = tasks.register<Zip>("dockerPackageRpi4") {
+    archiveFileName.set("dockerRpi4.zip")
     from("apps/common") {
         include("management/*")
         include("setup/*")
