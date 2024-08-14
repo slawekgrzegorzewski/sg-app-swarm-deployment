@@ -28,7 +28,7 @@ jobs:
       - name: Build with Gradle Wrapper
         id: build
         run: |
-           ./gradlew dockerPackageRpi4
+           gradle dockerPackageRpi4
            mv build/distributions/dockerRpi4.zip .
            cp dev-ops/apps/utils/update_cluster.sh .
 
