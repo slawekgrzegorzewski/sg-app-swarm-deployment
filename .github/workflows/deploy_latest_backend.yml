@@ -38,6 +38,6 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
-          port: 25
+          port: 24
           script: |
             docker service update --force --image ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:latest sg-application_backend

@@ -38,7 +38,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
-          port: 25
+          port: 24
           source: dockerRpi4.zip
           target: /home/${{ secrets.SSH_USER }}/Cluster
 
@@ -48,7 +48,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
-          port: 25
+          port: 24
           source: update_cluster.sh
           target: /home/${{ secrets.SSH_USER }}/Cluster
 
@@ -60,7 +60,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
-          port: 25
+          port: 24
           script: |
             cd /home/${{ secrets.SSH_USER }}/Cluster/
             dos2unix update_cluster.sh
