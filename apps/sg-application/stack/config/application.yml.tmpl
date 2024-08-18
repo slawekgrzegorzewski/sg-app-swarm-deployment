@@ -28,6 +28,9 @@ server:
 
 nodrigen:
   service-url: https://bankaccountdata.gocardless.com/api/v2/
+  log:
+    requests:
+      dir: /app/nodrigenRequests
 
 random-org:
   url: https://api.random.org/json-rpc/4/invoke

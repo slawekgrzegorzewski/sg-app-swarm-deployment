@@ -46,6 +46,7 @@ services:
       - $APPLICATION_CONFIG_DIR/logback.xml:/app/logback.xml:ro
       - $SG_APPLICATION_LOGS_DIR:/app/logs/
       - $SG_APPLICATION_BIBLE_FILES_DIR:/app/bibleFiles/
+      - $SG_APPLICATION_NODRIGEN_REQUESTS_LOGS_DIR:/app/nodrigenRequests
     networks:
       - sg_app_network
 

@@ -18,6 +18,12 @@
             "log_group_name": "app",
             "log_stream_name": "backend-requests",
             "retention_in_days": -1
+          },
+          {
+            "file_path": "/home/slawek/Cluster/permanent_data/sg-application/nodrigenRequests/**",
+            "log_group_name": "app",
+            "log_stream_name": "nodrigen-requests",
+            "retention_in_days": -1
           }
         ]
       }
