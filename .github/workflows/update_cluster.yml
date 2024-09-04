@@ -48,7 +48,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
-          port: 24
+          port: 101
           source: update_cluster.sh
           target: /home/${{ secrets.SSH_USER }}/Cluster
 

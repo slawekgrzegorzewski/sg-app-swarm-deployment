@@ -74,7 +74,7 @@ function configure_aws_cli_and_access {
   echo "aws_secret_access_key = $MAIN_AWS_ACCOUNT_ACCESS_KEY" >>$HOME/.aws/credentials
   echo "[AmazonCloudWatchAgent]" >>$HOME/.aws/credentials
   echo "aws_access_key_id = $LOGS_AWS_ACCOUNT_KEY_ID" >>$HOME/.aws/credentials
-  echo "aws_secret_access_key = $LOGS_AWS_ACCOUNT_KEY_ID" >>$HOME/.aws/credentials
+  echo "aws_secret_access_key = $LOGS_AWS_ACCOUNT_ACCESS_KEY" >>$HOME/.aws/credentials
   chmod 600 $HOME/.aws/credentials
 
   echo "[default]" >$HOME/.aws/config
@@ -89,7 +89,7 @@ function configure_aws_cli_and_access {
   sudo touch /etc/systemd/system/docker.service.d/aws-credentials.conf
   sudo echo "[Service]" | sudo tee /etc/systemd/system/docker.service.d/aws-credentials.conf
   sudo echo "Environment=\"AWS_ACCESS_KEY_ID=$LOGS_AWS_ACCOUNT_KEY_ID\"" | sudo tee -a /etc/systemd/system/docker.service.d/aws-credentials.conf
-  sudo echo "Environment=\"AWS_SECRET_ACCESS_KEY=$LOGS_AWS_ACCOUNT_KEY_ID\"" | sudo tee -a /etc/systemd/system/docker.service.d/aws-credentials.conf
+  sudo echo "Environment=\"AWS_SECRET_ACCESS_KEY=$LOGS_AWS_ACCOUNT_ACCESS_KEY\"" | sudo tee -a /etc/systemd/system/docker.service.d/aws-credentials.conf
 
   sudo systemctl daemon-reload
   sudo service docker restart
