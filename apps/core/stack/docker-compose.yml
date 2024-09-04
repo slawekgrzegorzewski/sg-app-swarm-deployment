@@ -33,7 +33,7 @@ services:
       - sgapplication.key
     volumes:
       - $CORE_CONFIG_DIR/nginx.conf:/etc/nginx/nginx.conf:ro
-      - $CORE_CONFIG_DIR/htpasswd:/auth/htpasswd:ro
+      - $SECRETS_DIR/htpasswd:/auth/htpasswd:ro
       - $CORE_GATEWAY_HTML_DIR:/usr/share/nginx:ro
     networks:
       - cluster_network
