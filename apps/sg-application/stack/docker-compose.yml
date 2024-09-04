@@ -38,10 +38,6 @@ services:
       - aws_secret_access_key
       - aws_region
       - random_org_api_key
-    deploy:
-      placement:
-        constraints:
-          - node.hostname!=rpi3
     volumes:
       - $APPLICATION_CONFIG_DIR/logback.xml:/app/logback.xml:ro
       - $SG_APPLICATION_LOGS_DIR:/app/logs/

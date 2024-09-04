@@ -28,18 +28,18 @@ jobs:
       - name: Build with Gradle Wrapper
         id: build
         run: |
-           gradle dockerPackageRpi4
-           mv build/distributions/dockerRpi4.zip .
+           gradle dockerPackage
+           mv build/distributions/docker.zip .
            cp apps/utils/update_cluster.sh .
 
-      - name: copy dockerRpi4.zip via ssh password
+      - name: copy docker.zip via ssh password
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
           port: 101
-          source: dockerRpi4.zip
+          source: docker.zip
           target: /home/${{ secrets.SSH_USER }}/Cluster
 
       - name: copy update_cluster.sh via ssh password

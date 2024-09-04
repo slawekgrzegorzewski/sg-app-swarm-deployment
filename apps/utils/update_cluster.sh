@@ -11,8 +11,8 @@ rm -rf core
 rm -rf db
 rm -rf sg-application
 
-unzip -o dockerRpi4.zip
-rm dockerRpi4.zip
+unzip -o docker.zip
+rm docker.zip
 
 dos2unix core/**/* 2> /dev/null
 dos2unix db/**/* 2> /dev/null

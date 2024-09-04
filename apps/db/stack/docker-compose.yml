@@ -16,10 +16,6 @@ services:
     restart: always
     environment:
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
-    deploy:
-      placement:
-        constraints:
-          - node.hostname==rpi4
     secrets:
       - postgres_password
     volumes:

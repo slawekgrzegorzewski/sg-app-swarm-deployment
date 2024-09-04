@@ -2,8 +2,8 @@ plugins {
     id("jvm-test-suite")
 }
 
-val infrastructureRpi4 = tasks.register<Zip>("infrastructureRpi4") {
-    archiveFileName.set("infrastructureRpi4.zip")
+val infrastructure = tasks.register<Zip>("infrastructure") {
+    archiveFileName.set("infrastructure.zip")
     from("apps/common/setup") {
         include("setup_directories.sh")
     }
@@ -13,8 +13,8 @@ val infrastructureRpi4 = tasks.register<Zip>("infrastructureRpi4") {
     }
 }
 
-val dockerPackageRpi4 = tasks.register<Zip>("dockerPackageRpi4") {
-    archiveFileName.set("dockerRpi4.zip")
+val dockerPackage = tasks.register<Zip>("dockerPackage") {
+    archiveFileName.set("docker.zip")
     from("apps/common") {
         include("management/*")
         include("setup/*")

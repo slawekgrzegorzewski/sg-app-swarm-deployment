@@ -9,7 +9,7 @@ curl -X GET --basic -u <<user>>:<<password> https://grzegorzewski.org:5000/v2/ba
 ```
 
 ```bash
-curl -X GET --basic -u  <<user>>:<<password> --header "Accept: application/vnd.oci.image.index.v1+json" https://grzegorzewski.org:5000/v2/backend/manifests/2024-07-16_18-53-2852e20-rpi4
+curl -X GET --basic -u  <<user>>:<<password> --header "Accept: application/vnd.oci.image.index.v1+json" https://grzegorzewski.org:5000/v2/backend/manifests/2024-07-16_18-53-2852e20
 ```
 
 ```bash

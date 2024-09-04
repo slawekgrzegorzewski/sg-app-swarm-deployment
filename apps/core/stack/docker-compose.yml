@@ -49,7 +49,7 @@ services:
     volumes:
       - $CORE_REGISTRY_DATA_DIR:/var/lib/registry
     environment:
-      REGISTRY_HTTP_HEADERS_Access-Control-Allow-Origin: '[http://rpi5:4080]'
+      REGISTRY_HTTP_HEADERS_Access-Control-Allow-Origin: '[http://pc2:4080]'
       REGISTRY_HTTP_HEADERS_Access-Control-Allow-Methods: '[HEAD,GET,OPTIONS,DELETE]'
       REGISTRY_HTTP_HEADERS_Access-Control-Allow-Credentials: '[true]'
       REGISTRY_HTTP_HEADERS_Access-Control-Allow-Headers: '[Authorization,Accept,Cache-Control]'
@@ -65,7 +65,7 @@ services:
       - 4080:80
     environment:
       REGISTRY_TITLE: My Private Docker Registry
-      REGISTRY_URL: http://rpi5:5000
+      REGISTRY_URL: http://pc2:5000
       SINGLE_REGISTRY: 'true'
       DELETE_IMAGES: 'true'
     depends_on:
