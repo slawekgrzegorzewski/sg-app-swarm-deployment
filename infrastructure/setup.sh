@@ -16,7 +16,7 @@ function setup_sudo {
   sudo echo "$USERNAME    ALL=(ALL:ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/$USERNAME
   sudo apt-get update
   sudo apt-get install -y unzip dos2unix ca-certificates curl gnupg lsb-release
-  sudo echo "$USERNAME    ALL=(ALL:ALL) ALL" | sudo tee /etc/sudoers.d/$USERNAME
+  sudo echo "%sudo	ALL=(ALL:ALL) NOPASSWD:/home/slawek/Cluster/update_cluster.sh ALL" | sudo tee /etc/sudoers.d/$USERNAME
 }
 
 function setup_secrets_and_files {
