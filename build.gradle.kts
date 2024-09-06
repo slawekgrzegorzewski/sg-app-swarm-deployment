@@ -52,4 +52,9 @@ val dockerPackage = tasks.register<Zip>("dockerPackage") {
         exclude("Dockerfile*")
         into("sg-application")
     }
+    from("apps/infrastructure") {
+        include("management/*")
+        include("setup/*")
+        into("infrastructure")
+    }
 }
