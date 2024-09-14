@@ -1,6 +1,6 @@
 <configuration>
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>log.txt</file>
+        <file>/app/logs/log.txt</file>
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
             <includeMdcKeyName>correlationID</includeMdcKeyName>
             <fieldNames>
@@ -20,7 +20,7 @@
     </appender>
 
     <appender name="FILE2" class="ch.qos.logback.core.FileAppender">
-        <file>requests.txt</file>
+        <file>/app/logs/requests.txt</file>
         <append>true</append>
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
             <includeMdcKeyName>correlationID</includeMdcKeyName>
