@@ -55,6 +55,7 @@ services:
     secrets:
       - go_cardless_secret_id
       - go_cardless_secret_key
+      - postgres_password
     volumes:
       - $APPLICATION_CONFIG_DIR/logback-banks.xml:/app/logback.xml:ro
       - $SG_BANKS_LOGS_DIR:/app/logs/
