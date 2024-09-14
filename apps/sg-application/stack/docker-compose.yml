@@ -93,6 +93,10 @@ secrets:
     external: true
   sendgrid_api_key:
     external: true
+  go_cardless_secret_id:
+    external: true
+  go_cardless_secret_key:
+    external: true
   nordigen_secret_id:
     external: true
   nordigen_secret_key:
