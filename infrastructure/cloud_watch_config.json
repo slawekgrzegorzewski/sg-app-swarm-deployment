@@ -34,7 +34,7 @@
           {
             "file_path": "/home/slawek/Cluster/permanent_data/sg-banks/logs/requests.txt",
             "log_group_name": "app",
-            "log_stream_name": "banks",
+            "log_stream_name": "go-cardless-requests",
             "retention_in_days": -1
           }
         ]
