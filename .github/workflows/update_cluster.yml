@@ -65,6 +65,6 @@ jobs:
             cd /home/${{ secrets.SSH_USER }}/Cluster/
             dos2unix update_cluster.sh
             chmod +x update_cluster.sh
-            sudo ./update_cluster.sh
+            ./update_cluster.sh
             rm update_cluster.sh
             
