@@ -87,6 +87,10 @@ configs:
     template_driver: golang
     file: config/application.yml.tmpl
     name: myapp.application.yml${CONFIG_VERSION:-0}
+  application-banks.yml:
+    template_driver: golang
+    file: config/application-banks.yml.tmpl
+    name: myapp.application-banks.yml${CONFIG_VERSION:-0}
     
 secrets:
   jwt_secret_code:
