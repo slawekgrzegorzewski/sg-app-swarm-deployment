@@ -1,0 +1,54 @@
+<configuration>
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>log.txt</file>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdcKeyName>correlationID</includeMdcKeyName>
+            <fieldNames>
+                <timestamp>timeStamp</timestamp>
+                <message>message</message>
+                <logger>logger</logger>
+                <thread>thread</thread>
+                <level>level</level>
+                <levelValue>[ignore]</levelValue>
+                <version>[ignore]</version>
+                <stackTrace>stackTrace</stackTrace>
+            </fieldNames>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
+    </appender>
+
+    <appender name="FILE2" class="ch.qos.logback.core.FileAppender">
+        <file>requests.txt</file>
+        <append>true</append>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdcKeyName>correlationID</includeMdcKeyName>
+            <fieldNames>
+                <timestamp>timeStamp</timestamp>
+                <message>message</message>
+                <logger>logger</logger>
+                <thread>thread</thread>
+                <level>level</level>
+                <levelValue>[ignore]</levelValue>
+                <version>[ignore]</version>
+                <stackTrace>stackTrace</stackTrace>
+            </fieldNames>
+        </encoder>
+    </appender>
+
+    <logger name="org" level="INFO"/>
+    <logger name="com" level="INFO"/>
+    <logger name="net" level="INFO"/>
+    <logger name="pl" level="DEBUG"/>
+    <logger name="graphql.execution" level="INFO"/>
+
+    <logger name="go-cardless-request" level="TRACE" additivity="false">
+        <appender-ref ref="FILE2"/>
+    </logger>
+
+    <root level="DEBUG">
+        <appender-ref ref="FILE"/>
+    </root>
+
+</configuration>

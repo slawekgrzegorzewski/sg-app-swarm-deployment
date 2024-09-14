@@ -46,6 +46,21 @@ services:
     networks:
       - sg_app_network
 
+  banks:
+    image: grzegorzewski.org:5005/banks:latest
+    container_name: banks
+    configs:
+      - source: application-banks.yml
+        target: /app/application.yml
+    secrets:
+      - go_cardless_secret_id
+      - go_cardless_secret_key
+    volumes:
+      - $APPLICATION_CONFIG_DIR/logback-banks.xml:/app/logback.xml:ro
+      - $SG_BANKS_LOGS_DIR:/app/logs/
+    networks:
+      - sg_app_network
+
   gateway:
     logging:
       driver: awslogs
