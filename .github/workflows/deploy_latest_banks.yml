@@ -1,0 +1,43 @@
+name: deploy latest banks
+
+on:
+  workflow_dispatch:
+    
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+
+      - name: setup insecure registry
+        id: setup-insecure-registry
+        run: |
+          echo { | sudo tee /etc/docker/daemon.json
+          echo "\"insecure-registries\" : [\"https://grzegorzewski.org:5005\"]" | sudo tee -a /etc/docker/daemon.json
+          echo } | sudo tee -a /etc/docker/daemon.json
+          sudo systemctl restart docker
+
+      - name: Login to Registry
+        id: login-to-registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.SG_REGISTRY_URL }}
+          username: ${{ secrets.SG_REGISTRY_USER }}
+          password: ${{ secrets.SG_REGISTRY_PASSWORD }}
+
+      - name: Deploy the latest banks
+        id: deploy_latest_banks§
+        uses: appleboy/ssh-action@master
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          REGISTRY: ${{ secrets.SG_REGISTRY_URL }}
+          REPOSITORY: banks
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 101
+          script: |
+            docker service update --force --image ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:latest sg-application_banks
