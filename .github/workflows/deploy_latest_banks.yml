@@ -28,7 +28,7 @@ jobs:
           password: ${{ secrets.SG_REGISTRY_PASSWORD }}
 
       - name: Deploy the latest banks
-        id: deploy_latest_banks§
+        id: deploy_latest_banks
         uses: appleboy/ssh-action@master
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
