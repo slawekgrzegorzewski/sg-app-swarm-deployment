@@ -49,6 +49,8 @@ services:
   banks:
     image: grzegorzewski.org:5005/banks:latest
     container_name: banks
+    ports:
+      - 8081:8080
     configs:
       - source: application-banks.yml
         target: /app/application.yml
