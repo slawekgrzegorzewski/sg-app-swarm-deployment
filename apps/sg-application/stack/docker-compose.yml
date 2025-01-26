@@ -37,6 +37,7 @@ services:
       - aws_access_key_id
       - aws_secret_access_key
       - aws_region
+      - aws_pjm_lambda_function
       - random_org_api_key
     volumes:
       - $APPLICATION_CONFIG_DIR/logback.xml:/app/logback.xml:ro
@@ -115,6 +116,8 @@ secrets:
   aws_secret_access_key:
     external: true
   aws_region:
+    external: true
+  aws_pjm_lambda_function:
     external: true
   random_org_api_key:
     external: true
