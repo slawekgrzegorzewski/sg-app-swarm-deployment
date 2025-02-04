@@ -72,6 +72,18 @@ services:
       - registry-server
     networks:
       - cluster_network
+
+  t310-reader:
+    image: t310-reader:1.0.0
+    deploy:
+      mode: replicated
+      replicas: 0
+      labels:
+        - "swarm.cronjob.enable=true"
+        - "swarm.cronjob.schedule=* * * * *"
+        - "swarm.cronjob.skip-running=false"
+      restart_policy:
+        condition: none
     
 secrets:
   sgapplication.crt:
