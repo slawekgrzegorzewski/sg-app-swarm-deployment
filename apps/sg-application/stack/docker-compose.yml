@@ -2,22 +2,6 @@ version: '3.8'
 
 services:
 
-  test:
-    image: ubuntu
-    command: >
-      /bin/bash -c "echo a >> /home/a/a.txt"
-    deploy:
-      mode: replicated
-      replicas: 0
-      labels:
-        - "swarm.cronjob.enable=true"
-        - "swarm.cronjob.schedule=* * * * *"
-        - "swarm.cronjob.skip-running=false"
-      restart_policy:
-        condition: none
-    volumes:
-      - /home/slawek/Cluster/sg-application/management:/home/a
-
   backend:
     image: grzegorzewski.org:5005/backend:latest
     container_name: backend
@@ -46,6 +30,10 @@ services:
       - $SG_APPLICATION_NODRIGEN_REQUESTS_LOGS_DIR:/app/nodrigenRequests
     networks:
       - sg_app_network
+    deploy:
+      placement:
+        constraints:
+          - node.hostname==PC2
 
   banks:
     image: grzegorzewski.org:5005/banks:latest
@@ -64,6 +52,10 @@ services:
       - $SG_BANKS_LOGS_DIR:/app/logs/
     networks:
       - sg_app_network
+    deploy:
+      placement:
+        constraints:
+          - node.hostname==PC2
 
   gateway:
     logging:
@@ -85,6 +77,10 @@ services:
       - $SG_APPLICATION_GATEWAY_DIR:/usr/share/nginx:ro
     networks:
       - sg_app_network
+    deploy:
+      placement:
+        constraints:
+          - node.hostname==PC2
 
 configs:
   application.yml:

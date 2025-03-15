@@ -24,6 +24,10 @@ services:
     networks:
       - sg_app_network
       - cluster_network
+    deploy:
+      placement:
+        constraints:
+          - node.hostname==rpi5
 
 secrets:
   postgres_password:
