@@ -117,6 +117,10 @@ secrets:
     external: true
   intellectual_property_s3_aws_secret_access_key:
     external: true
+  pjm_downloader_aws_access_key_id:
+    external: true
+  pjm_downloader_aws_secret_access_key:
+    external: true
   aws_region:
     external: true
   aws_pjm_lambda_function:

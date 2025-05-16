@@ -27,6 +27,12 @@ echo "op://Private/SG App secrets/aws_access_key_id" | docker secret create aws_
 docker secret rm aws_secret_access_key
 echo "op://Private/SG App secrets/aws_secret_access_key" | docker secret create aws_secret_access_key -
 
+docker secret rm pjm_downloader_aws_access_key_id
+echo "op://Private/SG App secrets/pjm_downloader_aws_access_key_id" | docker secret create pjm_downloader_aws_access_key_id -
+
+docker secret rm pjm_downloader_aws_secret_access_key
+echo "op://Private/SG App secrets/pjm_downloader_aws_secret_access_key" | docker secret create pjm_downloader_aws_secret_access_key -
+
 docker secret rm intellectual_property_s3_aws_access_key_id
 echo "op://Private/SG App secrets/intellectual_property_s3_aws_access_key_id" | docker secret create intellectual_property_s3_aws_access_key_id -
 
