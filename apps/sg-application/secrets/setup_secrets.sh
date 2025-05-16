@@ -21,12 +21,6 @@ echo "op://Private/SG App secrets/go_cardless_secret_key" | docker secret create
 docker secret rm postgres_password
 echo "op://Private/SG App secrets/postgres_password" | docker secret create postgres_password -
 
-docker secret rm aws_access_key_id
-echo "op://Private/SG App secrets/aws_access_key_id" | docker secret create aws_access_key_id -
-
-docker secret rm aws_secret_access_key
-echo "op://Private/SG App secrets/aws_secret_access_key" | docker secret create aws_secret_access_key -
-
 docker secret rm pjm_downloader_aws_access_key_id
 echo "op://Private/SG App secrets/pjm_downloader_aws_access_key_id" | docker secret create pjm_downloader_aws_access_key_id -
 
