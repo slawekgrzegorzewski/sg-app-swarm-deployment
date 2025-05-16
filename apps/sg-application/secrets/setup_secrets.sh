@@ -30,8 +30,8 @@ echo "op://Private/SG App secrets/aws_secret_access_key" | docker secret create 
 docker secret rm intellectual_property_s3_aws_access_key_id
 echo "op://Private/SG App secrets/intellectual_property_s3_aws_access_key_id" | docker secret create intellectual_property_s3_aws_access_key_id -
 
-docker secret rm intellectual_property_s3_aws_access_key
-echo "op://Private/SG App secrets/intellectual_property_s3_aws_access_key" | docker secret create intellectual_property_s3_aws_access_key -
+docker secret rm intellectual_property_s3_aws_secret_access_key
+echo "op://Private/SG App secrets/intellectual_property_s3_aws_secret_access_key" | docker secret create intellectual_property_s3_aws_secret_access_key -
 
 docker secret rm aws_region
 echo "op://Private/SG App secrets/aws_region" | docker secret create aws_region -
