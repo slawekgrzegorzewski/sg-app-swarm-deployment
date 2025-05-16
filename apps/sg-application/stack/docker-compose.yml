@@ -20,6 +20,8 @@ services:
       - postgres_password
       - aws_access_key_id
       - aws_secret_access_key
+      - intellectual_property_s3_aws_access_key_id
+      - intellectual_property_s3_aws_access_key
       - aws_region
       - aws_pjm_lambda_function
       - random_org_api_key
@@ -110,6 +112,10 @@ secrets:
   aws_access_key_id:
     external: true
   aws_secret_access_key:
+    external: true
+  intellectual_property_s3_aws_access_key_id:
+    external: true
+  intellectual_property_s3_aws_access_key:
     external: true
   aws_region:
     external: true
