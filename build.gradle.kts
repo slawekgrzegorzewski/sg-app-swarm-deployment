@@ -1,3 +1,5 @@
+import java.nio.file.Paths
+
 plugins {
     id("jvm-test-suite")
 }
@@ -56,5 +58,44 @@ val dockerPackage = tasks.register<Zip>("dockerPackage") {
         include("management/*")
         include("setup/*")
         into("infrastructure")
+    }
+}
+
+tasks.register("generate-secrets") {
+    val generatedDir = project.layout.buildDirectory.dir("generated/secrets/accountant").get().asFile
+    val certsDir = generatedDir.resolve("certs")
+    val sourceDir = file(
+        Paths.get(
+            "apps", "sg-application", "secrets"
+        )
+    )
+    doFirst {
+        generatedDir.deleteRecursively()
+        certsDir.mkdirs()
+    }
+    doLast {
+        arrayOf("setup_secrets.sh", "put_secrets_to_env.sh", "clear_secrets_from_env.sh").forEach {
+            exec {
+                commandLine(
+                    "op", "inject",
+                    "-i", sourceDir.resolve(it).path,
+                    "-o", generatedDir.resolve(it).path
+                )
+            }
+        }
+        arrayOf("htpasswd", "id_rsa", "id.pub").forEach {
+            exec {
+                commandLine(
+                    "op", "read", "op://Private/SG App secrets/" + it, "-o", generatedDir.resolve(it).path, "-f"
+                )
+            }
+        }
+        arrayOf("sgapplication.key", "sgapplication.crt").forEach {
+            exec {
+                commandLine(
+                    "op", "read", "op://Private/SG App secrets/" + it, "-o", certsDir.resolve(it).path, "-f"
+                )
+            }
+        }
     }
 }

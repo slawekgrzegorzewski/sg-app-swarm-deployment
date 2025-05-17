@@ -14,6 +14,7 @@ services:
       placement:
         constraints:
           - node.role==manager
+          - node.hostname==PC2
 
   gateway:
     logging:
@@ -40,6 +41,10 @@ services:
     depends_on:
       - registry-server
       - registry-ui
+    deploy:
+      placement:
+        constraints:
+          - node.hostname==PC2
 
   registry-server:
     image: registry:2.8.3
@@ -58,6 +63,10 @@ services:
     restart: always
     networks:
       - cluster_network
+    deploy:
+      placement:
+        constraints:
+          - node.hostname==PC2
 
   registry-ui:
     image: joxit/docker-registry-ui:2.5.7
@@ -72,6 +81,23 @@ services:
       - registry-server
     networks:
       - cluster_network
+    deploy:
+      placement:
+        constraints:
+          - node.hostname==PC2
+
+  t310-reader:
+    image: t310-reader:1.0.0
+    deploy:
+      labels:
+        - "swarm.cronjob.enable=true"
+        - "swarm.cronjob.schedule=* * * * *"
+        - "swarm.cronjob.skip-running=false"
+      restart_policy:
+        condition: none
+      placement:
+        constraints:
+          - node.hostname==PC2
     
 secrets:
   sgapplication.crt:
