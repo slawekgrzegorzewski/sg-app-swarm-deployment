@@ -46,6 +46,7 @@ services:
       - source: application-banks.yml
         target: /app/application.yml
     secrets:
+      - jwt_secret_code
       - go_cardless_secret_id
       - go_cardless_secret_key
       - postgres_password
