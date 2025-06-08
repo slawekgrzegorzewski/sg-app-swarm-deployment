@@ -90,6 +90,9 @@ services:
     image: t310-reader:1.0.1
     secrets:
       - smart_home_db_password
+      - tapo_user
+      - tapo_password
+      - tapo_device_ip
     deploy:
       labels:
         - "swarm.cronjob.enable=true"
@@ -103,6 +106,12 @@ services:
     
 secrets:
   smart_home_db_password:
+    external: true
+  tapo_user:
+    external: true
+  tapo_password:
+    external: true
+  tapo_device_ip:
     external: true
   sgapplication.crt:
     file: $SECRETS_DIR/certs/sgapplication.crt

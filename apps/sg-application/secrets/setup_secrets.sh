@@ -24,6 +24,15 @@ echo "op://Private/SG App secrets/postgres_password" | docker secret create post
 docker secret rm smart_home_db_password
 echo "op://Private/SG App secrets/smart_home_db_password" | docker secret create smart_home_db_password -
 
+docker secret rm tapo_user
+echo "op://Private/SG App secrets/tapo_user" | docker secret create tapo_user -
+
+docker secret rm tapo_password
+echo "op://Private/SG App secrets/tapo_password" | docker secret create tapo_password -
+
+docker secret rm tapo_device_ip
+echo "op://Private/SG App secrets/tapo_device_ip" | docker secret create tapo_device_ip -
+
 docker secret rm pjm_downloader_aws_access_key_id
 echo "op://Private/SG App secrets/pjm_downloader_aws_access_key_id" | docker secret create pjm_downloader_aws_access_key_id -
 
