@@ -88,6 +88,8 @@ services:
 
   t310-reader:
     image: t310-reader:1.0.0
+    secrets:
+      - smart_home_db_password
     deploy:
       labels:
         - "swarm.cronjob.enable=true"
@@ -100,6 +102,8 @@ services:
           - node.hostname==PC2
     
 secrets:
+  smart_home_db_password:
+    external: true
   sgapplication.crt:
     file: $SECRETS_DIR/certs/sgapplication.crt
   sgapplication.key:
