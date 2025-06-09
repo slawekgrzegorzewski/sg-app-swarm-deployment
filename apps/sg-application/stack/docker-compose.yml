@@ -49,7 +49,7 @@ services:
       - jwt_secret_code
       - go_cardless_secret_id
       - go_cardless_secret_key
-      - postgres_password
+      - accountant_db_password
     volumes:
       - $APPLICATION_CONFIG_DIR/logback-banks.xml:/app/logback.xml:ro
       - $SG_BANKS_LOGS_DIR:/app/logs/
@@ -108,7 +108,7 @@ secrets:
     external: true
   nordigen_secret_key:
     external: true
-  postgres_password:
+  accountant_db_password:
     external: true
   intellectual_property_s3_aws_access_key_id:
     external: true

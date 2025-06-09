@@ -18,8 +18,8 @@ echo "op://Private/SG App secrets/go_cardless_secret_id" | docker secret create 
 docker secret rm go_cardless_secret_key
 echo "op://Private/SG App secrets/go_cardless_secret_key" | docker secret create go_cardless_secret_key -
 
-docker secret rm postgres_password
-echo "op://Private/SG App secrets/postgres_password" | docker secret create postgres_password -
+docker secret rm accountant_db_password
+echo "op://Private/SG App secrets/accountant_db_password" | docker secret create accountant_db_password`` -
 
 docker secret rm smart_home_db_password
 echo "op://Private/SG App secrets/smart_home_db_password" | docker secret create smart_home_db_password -
