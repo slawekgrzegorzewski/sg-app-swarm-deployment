@@ -17,7 +17,7 @@ services:
       - sendgrid_api_key
       - nordigen_secret_id
       - nordigen_secret_key
-      - postgres_password
+      - accountant_db_password
       - pjm_downloader_aws_access_key_id
       - pjm_downloader_aws_secret_access_key
       - intellectual_property_s3_aws_access_key_id
