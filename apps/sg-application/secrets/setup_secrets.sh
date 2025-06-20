@@ -24,6 +24,9 @@ echo "op://Private/SG App secrets/postgres_password" | docker secret create post
 docker secret rm accountant_db_password
 echo "op://Private/SG App secrets/accountant_db_password" | docker secret create accountant_db_password`` -
 
+docker secret rm banks_db_password
+echo "op://Private/SG App secrets/banks_db_password" | docker secret create banks_db_password`` -
+
 docker secret rm smart_home_db_password
 echo "op://Private/SG App secrets/smart_home_db_password" | docker secret create smart_home_db_password -
 
