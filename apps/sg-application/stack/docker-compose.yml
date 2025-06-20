@@ -110,6 +110,8 @@ secrets:
     external: true
   accountant_db_password:
     external: true
+  banks_db_password:
+    external: true
   intellectual_property_s3_aws_access_key_id:
     external: true
   intellectual_property_s3_aws_secret_access_key:
