@@ -103,10 +103,16 @@ services:
       WORDPRESS_DB_USER: wordpress
       WORDPRESS_DB_PASSWORD_FILE: /run/secrets/mysql_wordpress_password
       WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - $WORDPRESS_HTML_DIR:/var/www/html
     secrets:
       - mysql_wordpress_password
     networks:
       - wordpress_network
+    deploy:
+      placement:
+        constraints:
+          - node.hostname==PC2
 
   t310-reader:
     image: t310-reader:1.0.1

@@ -7,6 +7,7 @@ export CLUSTER_DIR=$HOME/Cluster
 export SECRETS_DIR=$CLUSTER_DIR/secrets
 export PERMANENT_DATA_DIR=$CLUSTER_DIR/permanent_data
 export CORE_GATEWAY_HTML_DIR=$PERMANENT_DATA_DIR/core_gateway/html
+export WORDPRESS_HTML_DIR=$PERMANENT_DATA_DIR/wordpress/html
 export CORE_REGISTRY_DATA_DIR=$PERMANENT_DATA_DIR/registry/data
 export DATABASE_BACKUP_DIR=$PERMANENT_DATA_DIR/database/backup
 export DATABASE_BACKUPS_DIR=$PERMANENT_DATA_DIR/database/backups

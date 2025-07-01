@@ -10,5 +10,6 @@ mkdir -p $CORE_REGISTRY_DATA_DIR
 $SECRETS_DIR/setup_registry_auth.sh $REGISTRY_USER $REGISTRY_PASSWORD $CORE_CONFIG_DIR
 
 mkdir -p $REGISTRY_DATA_DIR
+mkdir -p $WORDPRESS_HTML_DIR
 
 source $SECRETS_DIR/clear_secrets_from_env.sh
