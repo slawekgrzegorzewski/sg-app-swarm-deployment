@@ -38,7 +38,6 @@ services:
       - $CORE_GATEWAY_HTML_DIR:/usr/share/nginx:ro
     networks:
       - cluster_network
-      - wordpress_network
     depends_on:
       - registry-server
       - registry-ui
@@ -136,4 +135,5 @@ networks:
   cluster_network:
     name: cluster_network
   wordpress_network:
+    name: wordpress_network
     external: true

@@ -80,6 +80,7 @@ services:
       - $SG_APPLICATION_GATEWAY_DIR:/usr/share/nginx:ro
     networks:
       - sg_app_network
+      - wordpress_network
     deploy:
       placement:
         constraints:
@@ -134,4 +135,7 @@ secrets:
 networks:
   sg_app_network:
     name: sg_app_network
+    external: true
+  wordpress_network:
+    name: wordpress_network
     external: true
