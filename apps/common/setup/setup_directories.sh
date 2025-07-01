@@ -1,6 +1,7 @@
 #!/bin/bash
 
 export POSTGRES_DATA_DIR=$HOME/Docker/data
+export MYSQL_DATA_DIR=$HOME/Docker/data_mysql
 
 export CLUSTER_DIR=$HOME/Cluster
 export SECRETS_DIR=$CLUSTER_DIR/secrets

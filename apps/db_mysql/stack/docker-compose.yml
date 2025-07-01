@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+
+  database:
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: eu-central-1
+        awslogs-group: app
+        awslogs-stream: db_mysql
+        awslogs-create-group: 'true'
+    image: mysql:9.3.0
+    ports:
+      - 3306:3306
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_password
+    secrets:
+      - mysql_password
+    volumes:
+      - $MYSQL_DATA_DIR:/var/lib/mysql
+    networks:
+      - cluster_network
+    deploy:
+      placement:
+        constraints:
+          - node.hostname==rpi5
+
+secrets:
+  mysql_password:
+    external: true
+
+networks:
+  cluster_network:
+    external: true

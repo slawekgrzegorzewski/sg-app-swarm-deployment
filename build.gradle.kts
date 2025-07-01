@@ -1,4 +1,15 @@
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import java.io.ByteArrayOutputStream
 import java.nio.file.Paths
+
+buildscript {
+    dependencies {
+        classpath("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+    }
+}
 
 plugins {
     id("jvm-test-suite")
@@ -44,6 +55,17 @@ val dockerPackage = tasks.register<Zip>("dockerPackage") {
     from("apps/common") {
         include("management/*")
         include("setup/*")
+        into("db_mysql")
+    }
+    from("apps/db_mysql") {
+        include("management/*")
+        include("setup/*")
+        include("stack/*")
+        into("db_mysql")
+    }
+    from("apps/common") {
+        include("management/*")
+        include("setup/*")
         into("sg-application")
     }
     from("apps/sg-application") {
@@ -69,6 +91,21 @@ tasks.register("generate-secrets") {
             "apps", "sg-application", "secrets"
         )
     )
+    val accountUUIDStdout = ByteArrayOutputStream()
+    exec {
+        commandLine(
+            "op",
+            "account",
+            "list",
+            "--format",
+            "json"
+        )
+        standardOutput = accountUUIDStdout
+    }
+    val accountObject = Json.parseToJsonElement(accountUUIDStdout.toString()).jsonArray
+        .filter { it.jsonObject["email"]!!.jsonPrimitive.content == "slawek.grz@gmail.com" }[0].jsonObject
+    val accountUUID = accountObject["account_uuid"]!!.jsonPrimitive.content
+
     doFirst {
         generatedDir.deleteRecursively()
         certsDir.mkdirs()
@@ -77,7 +114,7 @@ tasks.register("generate-secrets") {
         arrayOf("setup_secrets.sh", "put_secrets_to_env.sh", "clear_secrets_from_env.sh").forEach {
             exec {
                 commandLine(
-                    "op", "inject",
+                    "op", "inject", "--account", accountUUID,
                     "-i", sourceDir.resolve(it).path,
                     "-o", generatedDir.resolve(it).path
                 )
@@ -86,14 +123,28 @@ tasks.register("generate-secrets") {
         arrayOf("htpasswd", "id_rsa", "id.pub").forEach {
             exec {
                 commandLine(
-                    "op", "read", "op://Private/SG App secrets/" + it, "-o", generatedDir.resolve(it).path, "-f"
+                    "op",
+                    "read",
+                    "--account",
+                    accountUUID,
+                    "op://Private/SG App secrets/" + it,
+                    "-o",
+                    generatedDir.resolve(it).path,
+                    "-f"
                 )
             }
         }
         arrayOf("sgapplication.key", "sgapplication.crt").forEach {
             exec {
                 commandLine(
-                    "op", "read", "op://Private/SG App secrets/" + it, "-o", certsDir.resolve(it).path, "-f"
+                    "op",
+                    "read",
+                    "--account",
+                    accountUUID,
+                    "op://Private/SG App secrets/" + it,
+                    "-o",
+                    certsDir.resolve(it).path,
+                    "-f"
                 )
             }
         }
