@@ -60,5 +60,8 @@ echo "op://Private/SG App secrets/aws_pjm_lambda_function" | docker secret creat
 docker secret rm random_org_api_key
 echo "op://Private/SG App secrets/random_org_api_key" | docker secret create random_org_api_key -
 
-docker secret rm mysql_password
-echo "op://Private/SG App secrets/mysql_password" | docker secret create mysql_password -
+docker secret rm mysql_root_password
+echo "op://Private/SG App secrets/mysql_root_password" | docker secret create mysql_root_password -
+
+docker secret rm mysql_wordpress_password
+echo "op://Private/SG App secrets/mysql_wordpress_password" | docker secret create mysql_wordpress_password -

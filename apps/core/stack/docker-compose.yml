@@ -86,6 +86,19 @@ services:
         constraints:
           - node.hostname==PC2
 
+  wordpress:
+    image: wordpress:6.8.1-php8.1-apache
+    restart: always
+    ports:
+      - 7777:80
+    environment:
+      WORDPRESS_DB_HOST: db_mysql_database
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD_FILE: /run/secrets/mysql_wordpress_password
+      WORDPRESS_DB_NAME: wordpress
+    networks:
+      - wordpress_network
+
   t310-reader:
     image: t310-reader:1.0.1
     secrets:
@@ -121,3 +134,5 @@ secrets:
 networks:
   cluster_network:
     name: cluster_network
+  wordpress_network:
+    external: true

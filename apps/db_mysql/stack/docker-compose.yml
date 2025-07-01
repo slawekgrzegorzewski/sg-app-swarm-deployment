@@ -21,6 +21,7 @@ services:
     volumes:
       - $MYSQL_DATA_DIR:/var/lib/mysql
     networks:
+      - wordpress_network
       - cluster_network
     deploy:
       placement:
@@ -32,5 +33,7 @@ secrets:
     external: true
 
 networks:
+  wordpress_network:
+    name: wordpress_network
   cluster_network:
     external: true
