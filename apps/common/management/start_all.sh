@@ -5,4 +5,5 @@ source $SCRIPT_DIR/../setup/setup_directories.sh
 $CORE_MANAGEMENT_DIR/start.sh
 sleep 5
 $DB_MANAGEMENT_DIR/start.sh
+$DB_MYSQL_MANAGEMENT_DIR/start.sh
 $SG_APPLICATION_MANAGEMENT_DIR/start.sh
