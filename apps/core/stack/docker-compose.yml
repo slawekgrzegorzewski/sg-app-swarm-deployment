@@ -103,6 +103,8 @@ services:
       WORDPRESS_DB_USER: wordpress
       WORDPRESS_DB_PASSWORD_FILE: /run/secrets/mysql_wordpress_password
       WORDPRESS_DB_NAME: wordpress
+    secrets:
+      - mysql_wordpress_password
     networks:
       - wordpress_network
 
@@ -125,6 +127,8 @@ services:
           - node.hostname==PC2
     
 secrets:
+  mysql_wordpress_password:
+    external: true
   smart_home_db_password:
     external: true
   tapo_user:
