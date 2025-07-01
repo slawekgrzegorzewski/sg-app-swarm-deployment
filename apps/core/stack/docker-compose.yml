@@ -87,6 +87,13 @@ services:
           - node.hostname==PC2
 
   wordpress:
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: eu-central-1
+        awslogs-group: app
+        awslogs-stream: wordpress
+        awslogs-create-group: 'true'
     image: wordpress:6.8.1-php8.1-apache
     restart: always
     ports:
