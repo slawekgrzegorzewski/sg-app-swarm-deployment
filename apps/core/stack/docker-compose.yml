@@ -97,7 +97,7 @@ services:
     image: wordpress:6.8.1-php8.1-apache
     restart: always
     ports:
-      - 7777:80
+      - "7777:80"
     environment:
       WORDPRESS_DB_HOST: db_mysql_database
       WORDPRESS_DB_USER: wordpress

@@ -79,7 +79,6 @@ services:
       - $APPLICATION_CONFIG_DIR/nginx.conf:/etc/nginx/nginx.conf:ro
       - $SG_APPLICATION_GATEWAY_DIR:/usr/share/nginx:ro
     networks:
-      - sg_app_network
       - wordpress_network
     deploy:
       placement:
