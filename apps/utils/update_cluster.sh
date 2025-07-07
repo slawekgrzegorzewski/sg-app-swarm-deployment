@@ -22,12 +22,12 @@ sudo dos2unix secrets/**/* 2> /dev/null
 sudo dos2unix sg-application/**/* 2> /dev/null
 sudo dos2unix infrastructure/**/* 2> /dev/null
 
-sudo chown slawek:slawek core
-sudo chown slawek:slawek db
-sudo chown slawek:slawek db_mysql
-sudo chown slawek:slawek secrets
-sudo chown slawek:slawek sg-application
-sudo chown slawek:slawek infrastructure
+sudo chown slawek:slawek -R core
+sudo chown slawek:slawek -R db
+sudo chown slawek:slawek -R db_mysql
+sudo chown slawek:slawek -R secrets
+sudo chown slawek:slawek -R sg-application
+sudo chown slawek:slawek -R infrastructure
 
 sudo chmod +x core/**/*
 sudo chmod +x db/**/*
