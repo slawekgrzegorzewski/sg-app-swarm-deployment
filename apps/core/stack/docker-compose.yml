@@ -176,4 +176,3 @@ networks:
     name: cluster_network
   wordpress_network:
     name: wordpress_network
-    external: true

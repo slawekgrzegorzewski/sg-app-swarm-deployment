@@ -134,8 +134,6 @@ secrets:
 
 networks:
   sg_app_network:
-    name: sg_app_network
     external: true
   wordpress_network:
-    name: wordpress_network
     external: true
