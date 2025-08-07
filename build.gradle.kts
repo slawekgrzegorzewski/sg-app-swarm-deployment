@@ -134,7 +134,7 @@ tasks.register("generate-secrets") {
                 )
             }
         }
-        arrayOf("sgapplication.key", "sgapplication.crt").forEach {
+        arrayOf("sgapplication.key", "sgapplication.crt", "sgapplication2.key", "sgapplication2.crt").forEach {
             exec {
                 commandLine(
                     "op",

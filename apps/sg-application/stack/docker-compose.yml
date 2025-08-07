@@ -75,6 +75,8 @@ services:
     secrets:
       - sgapplication.crt
       - sgapplication.key
+      - sgapplication2.crt
+      - sgapplication2.key
     volumes:
       - $APPLICATION_CONFIG_DIR/nginx.conf:/etc/nginx/nginx.conf:ro
       - $SG_APPLICATION_GATEWAY_DIR:/usr/share/nginx:ro
@@ -131,6 +133,10 @@ secrets:
     file: $SECRETS_DIR/certs/sgapplication.crt
   sgapplication.key:
     file: $SECRETS_DIR/certs/sgapplication.key
+  sgapplication2.crt:
+    file: $SECRETS_DIR/certs/sgapplication2.crt
+  sgapplication2.key:
+    file: $SECRETS_DIR/certs/sgapplication2.key
 
 networks:
   sg_app_network:
