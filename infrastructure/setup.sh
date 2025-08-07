@@ -112,10 +112,28 @@ function configure_aws_agent {
   sudo service amazon-cloudwatch-agent start
 }
 
+function setup_certbot {
+  sudo apt update
+  sudo apt install python3 python3-dev python3-venv libaugeas-dev gcc
+  sudo dnf install python3 python-devel augeas-devel gcc
+  sudo apt-get remove certbot
+  sudo python3 -m venv /opt/certbot/
+  sudo /opt/certbot/bin/pip install --upgrade pip
+  sudo /opt/certbot/bin/pip install certbot
+  sudo ln -s /opt/certbot/bin/certbot /usr/bin/certbot
+
+  sudo certbot certonly --manual --preferred-challenges dns -d *.grzegorzewski.pl
+  sudo cp /etc/letsencrypt/live/grzegorzewski.pl/privkey.pem /home/slawek/Cluster/secrets/certs/sgapplication2.key
+  sudo cp /etc/letsencrypt/live/grzegorzewski.pl/fullchain.pem /home/slawek/Cluster/secrets/certs/sgapplication2.crt
+  sudo chown slawek:slawek  /home/slawek/Cluster/secrets/certs/sgapplication2.key
+  sudo chown slawek:slawek  /home/slawek/Cluster/secrets/certs/sgapplication2.crt
+}
+
 # this should be done on root user on all nodes
 setup_sudo
 
 #this section on all nodes
+setup_certbot
 setup_secrets_and_files
 install_docker
 #after this step do
