@@ -115,7 +115,6 @@ function configure_aws_agent {
 function setup_certbot {
   sudo apt update
   sudo apt install python3 python3-dev python3-venv libaugeas-dev gcc
-  sudo dnf install python3 python-devel augeas-devel gcc
   sudo apt-get remove certbot
   sudo python3 -m venv /opt/certbot/
   sudo /opt/certbot/bin/pip install --upgrade pip
