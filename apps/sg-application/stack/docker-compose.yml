@@ -72,7 +72,6 @@ services:
     container_name: nginx
     ports:
       - 443:443
-      - 80:8880
     secrets:
       - sgapplication.crt
       - sgapplication.key
