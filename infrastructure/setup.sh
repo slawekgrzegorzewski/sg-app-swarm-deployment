@@ -122,7 +122,7 @@ function setup_certbot {
   sudo /opt/certbot/bin/pip install certbot
   sudo ln -s /opt/certbot/bin/certbot /usr/bin/certbot
 
-  sudo certbot certonly --manual --preferred-challenges http -d grzegorzewski.pl,be.grzegorzewski.pl,wordpress.grzegorzewski.pl
+  sudo certbot certonly --manual --preferred-challenges http --manual-auth-hook /home/slawek/Cluster/core/management/letsencrypt_authenticator.sh --manual-cleanup-hook /home/slawek/Cluster/core/management/letsencrypt_cleanup.sh -d grzegorzewski.pl,be.grzegorzewski.pl,wordpress.grzegorzewski.pl
   sudo cp /etc/letsencrypt/live/grzegorzewski.pl/privkey.pem /home/slawek/Cluster/secrets/certs/sgapplication2.key
   sudo cp /etc/letsencrypt/live/grzegorzewski.pl/fullchain.pem /home/slawek/Cluster/secrets/certs/sgapplication2.crt
   sudo chown slawek:slawek  /home/slawek/Cluster/secrets/certs/sgapplication2.key
