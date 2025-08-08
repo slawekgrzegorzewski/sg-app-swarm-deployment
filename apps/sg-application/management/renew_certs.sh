@@ -11,6 +11,8 @@ sudo cp $LETSENCRYPT_CERTS_DIR/privkey.pem $SECRETS_DIR/certs/sgapplication2.key
 sudo cp $LETSENCRYPT_CERTS_DIR/fullchain.pem $SECRETS_DIR/certs/sgapplication2.crt
 sudo chown slawek:slawek $SECRETS_DIR/certs/sgapplication2.key
 sudo chown slawek:slawek $SECRETS_DIR/certs/sgapplication2.crt
+sudo chmod 775 $SECRETS_DIR/certs/sgapplication2.key
+sudo chmod 775 $SECRETS_DIR/certs/sgapplication2.crt
 $SG_APPLICATION_MANAGEMENT_DIR/stop.sh
 sleep 5
 $SG_APPLICATION_MANAGEMENT_DIR/start.sh
