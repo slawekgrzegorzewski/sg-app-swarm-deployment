@@ -22,8 +22,11 @@ services:
       - pjm_downloader_aws_secret_access_key
       - intellectual_property_s3_aws_access_key_id
       - intellectual_property_s3_aws_secret_access_key
+      - sns-client-access-key-id
+      - sns-client-access-key
       - aws_region
       - aws_pjm_lambda_function
+      - aws_pjm_sns_topic_arn
       - random_org_api_key
     volumes:
       - $APPLICATION_CONFIG_DIR/logback.xml:/app/logback.xml:ro
@@ -123,9 +126,15 @@ secrets:
     external: true
   pjm_downloader_aws_secret_access_key:
     external: true
+  sns-client-access-key-id:
+    external: true
+  sns-client-access-key:
+    external: true
   aws_region:
     external: true
   aws_pjm_lambda_function:
+    external: true
+  aws_pjm_sns_topic_arn:
     external: true
   random_org_api_key:
     external: true

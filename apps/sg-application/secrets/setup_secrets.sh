@@ -51,11 +51,20 @@ echo "op://Private/SG App secrets/intellectual_property_s3_aws_access_key_id" | 
 docker secret rm intellectual_property_s3_aws_secret_access_key
 echo "op://Private/SG App secrets/intellectual_property_s3_aws_secret_access_key" | docker secret create intellectual_property_s3_aws_secret_access_key -
 
+docker secret rm sns-client-access-key-id
+echo "op://Private/SG App secrets/sns-client-access-key-id" | docker secret create sns-client-access-key-id -
+
+docker secret rm sns-client-access-key
+echo "op://Private/SG App secrets/sns-client-access-key" | docker secret create sns-client-access-key -
+
 docker secret rm aws_region
 echo "op://Private/SG App secrets/aws_region" | docker secret create aws_region -
 
 docker secret rm aws_pjm_lambda_function
 echo "op://Private/SG App secrets/aws_pjm_lambda_function" | docker secret create aws_pjm_lambda_function -
+
+docker secret rm aws_pjm_sns_topic_arn
+echo "op://Private/SG App secrets/aws_pjm_sns_topic_arn" | docker secret create aws_pjm_sns_topic_arn -
 
 docker secret rm random_org_api_key
 echo "op://Private/SG App secrets/random_org_api_key" | docker secret create random_org_api_key -
