@@ -52,6 +52,10 @@ services:
       - jwt_secret_code
       - go_cardless_secret_id
       - go_cardless_secret_key
+      - sns-client-access-key-id
+      - sns-client-access-key
+      - aws_region
+      - aws_banks_sns_topic_arn
       - banks_db_password
     volumes:
       - $APPLICATION_CONFIG_DIR/logback-banks.xml:/app/logback.xml:ro
@@ -135,6 +139,8 @@ secrets:
   aws_pjm_lambda_function:
     external: true
   aws_pjm_sns_topic_arn:
+    external: true
+  aws_banks_sns_topic_arn:
     external: true
   random_org_api_key:
     external: true

@@ -66,6 +66,9 @@ echo "op://Private/SG App secrets/aws_pjm_lambda_function" | docker secret creat
 docker secret rm aws_pjm_sns_topic_arn
 echo "op://Private/SG App secrets/aws_pjm_sns_topic_arn" | docker secret create aws_pjm_sns_topic_arn -
 
+docker secret rm aws_banks_sns_topic_arn
+echo "op://Private/SG App secrets/aws_banks_sns_topic_arn" | docker secret create aws_banks_sns_topic_arn -
+
 docker secret rm random_org_api_key
 echo "op://Private/SG App secrets/random_org_api_key" | docker secret create random_org_api_key -
 
