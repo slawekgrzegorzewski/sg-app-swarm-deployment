@@ -118,6 +118,7 @@ services:
   t310-reader:
     image: t310-reader:1.0.1
     secrets:
+      - smart_home_db_host
       - smart_home_db_password
       - tapo_user
       - tapo_password
@@ -135,6 +136,8 @@ services:
 
 secrets:
   mysql_wordpress_password:
+    external: true
+  smart_home_db_host:
     external: true
   smart_home_db_password:
     external: true
