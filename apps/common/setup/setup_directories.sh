@@ -1,9 +1,11 @@
 #!/bin/bash
 
-export POSTGRES_DATA_DIR=$HOME/Docker/data
-export MYSQL_DATA_DIR=$HOME/Docker/data_mysql
+export CLUSTER_HOME=/home/slawek
 
-export CLUSTER_DIR=$HOME/Cluster
+export POSTGRES_DATA_DIR=$CLUSTER_HOME/Docker/data
+export MYSQL_DATA_DIR=$CLUSTER_HOME/Docker/data_mysql
+
+export CLUSTER_DIR=$CLUSTER_HOME/Cluster
 export SECRETS_DIR=$CLUSTER_DIR/secrets
 export PERMANENT_DATA_DIR=$CLUSTER_DIR/permanent_data
 export CORE_GATEWAY_HTML_DIR=$PERMANENT_DATA_DIR/core_gateway/html
