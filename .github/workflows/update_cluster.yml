@@ -9,6 +9,9 @@ on:
 jobs:
   update:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        PORT: [10000, 10005]
     permissions:
       contents: read
 
@@ -40,7 +43,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
-          port: 101
+          port: ${{ matrix.PORT }}
           source: docker.zip
           target: /home/${{ secrets.SSH_USER }}/Cluster
 
@@ -50,7 +53,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
-          port: 101
+          port: ${{ matrix.PORT }}
           source: update_cluster.sh
           target: /home/${{ secrets.SSH_USER }}/Cluster
 
@@ -62,7 +65,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
-          port: 101
+          port: ${{ matrix.PORT }}
           script: |
             cd /home/${{ secrets.SSH_USER }}/Cluster/
             dos2unix update_cluster.sh
