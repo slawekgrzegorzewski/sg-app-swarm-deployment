@@ -30,3 +30,7 @@ sudo chmod +x sg-application/**/*
 sudo chmod +x infrastructure/**/*
 
 infrastructure/setup/setup.sh
+core/setup/setup.sh
+db/setup/setup.sh
+db_mysql/setup/setup.sh
+sg-application/setup/setup.sh
