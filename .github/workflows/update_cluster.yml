@@ -13,8 +13,24 @@ jobs:
       contents: read
 
     steps:
-
       - uses: actions/checkout@v3
+
+      - name: stop docker containers
+        uses: appleboy/ssh-action@master
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 10000
+          script: |
+            core/management/stop_all.sh
+            sleep 5
+            core/management/stop_all.sh
+            sleep 5
+            core/management/stop_all.sh
+            sleep 20
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@417ae3ccd767c252f5661f1ace9f835f9654f2b5 # v3.1.0
@@ -34,7 +50,7 @@ jobs:
            mv build/distributions/docker.zip .
            cp apps/utils/update_cluster.sh .
 
-      - name: copy docker.zip via ssh password
+      - name: copy docker.zip via ssh password (PC2)
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -44,7 +60,17 @@ jobs:
           source: docker.zip
           target: /home/${{ secrets.SSH_USER }}/Cluster
 
-      - name: copy update_cluster.sh via ssh password
+      - name: copy docker.zip via ssh password (rpi5)
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 10005
+          source: docker.zip
+          target: /home/${{ secrets.SSH_USER }}/Cluster
+
+      - name: copy update_cluster.sh via ssh password (PC2)
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -54,7 +80,17 @@ jobs:
           source: update_cluster.sh
           target: /home/${{ secrets.SSH_USER }}/Cluster
 
-      - name: unpack and deploy application files
+      - name: copy update_cluster.sh via ssh password (rpi5)
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 10005
+          source: update_cluster.sh
+          target: /home/${{ secrets.SSH_USER }}/Cluster
+
+      - name: unpack and deploy application files (PC2)
         uses: appleboy/ssh-action@master
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
@@ -69,3 +105,31 @@ jobs:
             chmod +x update_cluster.sh
             ./update_cluster.sh
             rm update_cluster.sh
+
+      - name: unpack and deploy application files (rpi5)
+        uses: appleboy/ssh-action@master
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 10005
+          script: |
+            cd /home/${{ secrets.SSH_USER }}/Cluster/
+            dos2unix update_cluster.sh
+            chmod +x update_cluster.sh
+            ./update_cluster.sh
+            rm update_cluster.sh
+
+      - name: start docker containers
+        uses: appleboy/ssh-action@master
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 10000
+          script: |
+            core/management/start_all.sh

@@ -1,12 +1,5 @@
 #!/bin/bash
 
-core/management/stop_all.sh
-sleep 5
-core/management/stop_all.sh
-sleep 5
-core/management/stop_all.sh
-sleep 20
-
 sudo rm -rf core
 sudo rm -rf db
 sudo rm -rf db_mysql
@@ -37,5 +30,3 @@ sudo chmod +x sg-application/**/*
 sudo chmod +x infrastructure/**/*
 
 infrastructure/setup/setup.sh
-
-core/management/start_all.sh
