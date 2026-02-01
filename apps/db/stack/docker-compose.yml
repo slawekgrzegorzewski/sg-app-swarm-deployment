@@ -32,7 +32,7 @@ services:
   database-hot-standby:
     image: postgres:15.6
     ports:
-      - "5432:15432"
+      - "15432:5432"
     restart: always
     environment:
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
