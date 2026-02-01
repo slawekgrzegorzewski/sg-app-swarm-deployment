@@ -29,6 +29,25 @@ services:
         constraints:
           - node.hostname==rpi5
 
+  database-hot-standby:
+    image: postgres:15.6
+    ports:
+      - 5432:5432
+    restart: always
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - $POSTGRES_HOTSTANDBY_DATA_DIR:/var/lib/postgresql/data
+    networks:
+      - sg_app_network
+      - cluster_network
+    deploy:
+      placement:
+        constraints:
+          - node.hostname==rpi4
+
 secrets:
   postgres_password:
     external: true
