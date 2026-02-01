@@ -25,11 +25,11 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: 10000
           script: |
-            core/management/stop_all.sh
+            /home/slawek/Cluster/core/management/stop_all.sh
             sleep 5
-            core/management/stop_all.sh
+            /home/slawek/Cluster/core/management/stop_all.sh
             sleep 5
-            core/management/stop_all.sh
+            /home/slawek/Cluster/core/management/stop_all.sh
             sleep 20
 
       - name: Setup Gradle
@@ -132,4 +132,4 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: 10000
           script: |
-            core/management/start_all.sh
+            /home/slawek/Cluster/core/management/start_all.sh
