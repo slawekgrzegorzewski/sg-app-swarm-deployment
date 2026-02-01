@@ -81,8 +81,21 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ matrix.PORT }}
+          port: 10000
           script: |
             cd /home/${{ secrets.SSH_USER }}/Cluster/
-            echo ${{ matrix.PORT }} >> a.txt
+            echo a >> a.txt
+
+      - name: unpack and deploy application files
+        uses: appleboy/ssh-action@master
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 10005
+          script: |
+            cd /home/${{ secrets.SSH_USER }}/Cluster/
+            echo b >> a.txt
             
