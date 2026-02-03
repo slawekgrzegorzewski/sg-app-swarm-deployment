@@ -21,6 +21,7 @@ services:
     volumes:
       - $POSTGRES_DATA_DIR:/var/lib/postgresql/data
       - $DATABASE_BACKUP_DIR:/backup
+      - /home/slawek/Docker/tmp_master:/tmp
     networks:
       - sg_app_network
       - cluster_network
@@ -40,6 +41,7 @@ services:
       - postgres_password
     volumes:
       - $POSTGRES_HOTSTANDBY_DATA_DIR:/var/lib/postgresql/data
+      - /home/slawek/Docker/tmp_stanby:/tmp
     networks:
       - sg_app_network
       - cluster_network

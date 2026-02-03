@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - hot-standby
   workflow_dispatch:
     
 jobs:
