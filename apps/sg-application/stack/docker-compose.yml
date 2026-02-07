@@ -3,7 +3,7 @@ version: '3.8'
 services:
 
   backend:
-    image: grzegorzewski.org:5005/backend:latest
+    image: grzegorzewski.pl:5005/backend:latest
     container_name: backend
     ports:
       - 8080:8080
@@ -41,7 +41,7 @@ services:
           - node.hostname==PC2
 
   banks:
-    image: grzegorzewski.org:5005/banks:latest
+    image: grzegorzewski.pl:5005/banks:latest
     container_name: banks
     ports:
       - 8081:8080

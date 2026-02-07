@@ -48,7 +48,7 @@ function install_docker {
   sudo systemctl enable containerd.service
 
   echo "{" | sudo tee /etc/docker/daemon.json
-  echo "\"insecure-registries\" : [\"https://grzegorzewski.org:5005\"]" | sudo tee -a /etc/docker/daemon.json
+  echo "\"insecure-registries\" : [\"https://grzegorzewski.pl:5005\"]" | sudo tee -a /etc/docker/daemon.json
   echo "}" | sudo tee -a /etc/docker/daemon.json
   sudo systemctl restart docker
 }
