@@ -134,6 +134,19 @@ services:
         constraints:
           - node.hostname==PC2
 
+  prometheus:
+    image: prom/prometheus:v3
+    ports:
+      - 9090:9090
+    networks:
+      - cluster_network
+      - wordpress_network
+      - sg_app_network
+    deploy:
+      placement:
+        constraints:
+          - node.hostname==PC2
+
 secrets:
   mysql_wordpress_password:
     external: true
@@ -157,3 +170,5 @@ networks:
     name: cluster_network
   wordpress_network:
     name: wordpress_network
+  sg_app_network:
+    external: true
