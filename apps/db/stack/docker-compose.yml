@@ -10,7 +10,7 @@ services:
         awslogs-group: app
         awslogs-stream: db
         awslogs-create-group: 'true'
-    image: postgres:15.6
+    image: postgres:18.4
     ports:
       - "5432:5432"
     restart: always
@@ -19,7 +19,7 @@ services:
     secrets:
       - postgres_password
     volumes:
-      - $POSTGRES_DATA_DIR:/var/lib/postgresql/data
+      - $POSTGRES_DATA_DIR:/var/lib/postgresql
       - $DATABASE_BACKUP_DIR:/backup
     networks:
       - sg_app_network
