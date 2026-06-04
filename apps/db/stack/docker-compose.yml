@@ -29,6 +29,31 @@ services:
         constraints:
           - node.hostname==rpi5
 
+  database_backup:
+    image: postgres:18.4
+    restart: always
+    environment:
+      PGPASSWORD: /run/secrets/postgres_replica_password
+    secrets:
+      - postgres_replica_password
+    volumes:
+      - $DATABASE_BACKUP_DIR:/backup
+      - $DB_MANAGEMENT_DIR/backup_using_replica.sh:/backup_using_replica.sh
+    networks:
+      - sg_app_network
+      - cluster_network
+    entrypoint: ["/bin/bash", "/backup_using_replica.sh"]
+    deploy:
+      labels:
+        - "swarm.cronjob.enable=true"
+        - "swarm.cronjob.schedule=*/5 * * * *"
+        - "swarm.cronjob.skip-running=false"
+      restart_policy:
+        condition: none
+      placement:
+        constraints:
+          - node.hostname==rpi5
+
   database-hot-standby:
     image: postgres:18.4
     ports:
@@ -50,6 +75,8 @@ services:
 
 secrets:
   postgres_password:
+    external: true
+  postgres_replica_password:
     external: true
 
 networks:

@@ -21,6 +21,9 @@ echo "op://Private/SG App secrets/go_cardless_secret_key" | docker secret create
 docker secret rm postgres_password
 echo "op://Private/SG App secrets/postgres_password" | docker secret create postgres_password`` -
 
+docker secret rm postgres_replica_password
+echo "op://Private/SG App secrets/replicator_password" | docker secret create postgres_replica_password`` -
+
 docker secret rm accountant_db_password
 echo "op://Private/SG App secrets/accountant_db_password" | docker secret create accountant_db_password`` -
 
