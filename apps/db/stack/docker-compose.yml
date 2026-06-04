@@ -33,11 +33,14 @@ services:
     image: postgres:18.4
     restart: always
     environment:
-      PGPASSWORD: /run/secrets/postgres_replica_password
+      PGPASSWORD: /run/secrets/postgres_password
     secrets:
-      - postgres_replica_password
+      - postgres_password
     volumes:
       - $DATABASE_BACKUP_DIR:/backup
+      - $DATABASE_ACCOUNTANT_BACKUPS_DIR:/accountant_backups
+      - $DATABASE_BANKS_BACKUPS_DIR:/banks_backups
+      - $DATABASE_SMART_HOME_BACKUPS_DIR:/smart_home_backups
       - $DB_MANAGEMENT_DIR/backup_using_replica.sh:/backup_using_replica.sh
     networks:
       - sg_app_network
