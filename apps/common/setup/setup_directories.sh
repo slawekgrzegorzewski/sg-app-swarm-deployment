@@ -3,7 +3,7 @@
 export CLUSTER_HOME=/home/slawek
 
 export POSTGRES_DATA_DIR=$CLUSTER_HOME/Docker/postgres
-export POSTGRES_HOTSTANDBY_DATA_DIR=$CLUSTER_HOME/Docker/hotstandby_data
+export POSTGRES_HOTSTANDBY_DATA_DIR=$CLUSTER_HOME/Docker/postgres_hs
 export MYSQL_DATA_DIR=$CLUSTER_HOME/Docker/data_mysql
 
 export CLUSTER_DIR=$CLUSTER_HOME/Cluster
