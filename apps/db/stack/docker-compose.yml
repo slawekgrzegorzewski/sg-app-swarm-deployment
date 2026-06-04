@@ -34,6 +34,7 @@ services:
   database_backup:
     image: postgres:18.4
     restart: always
+    user: "1000:1000"
     environment:
       PGPASSWORD: /run/secrets/postgres_password
       TZ: Europe/Warsaw
