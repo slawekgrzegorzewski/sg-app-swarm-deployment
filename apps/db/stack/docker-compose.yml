@@ -16,6 +16,8 @@ services:
     restart: always
     environment:
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      TZ: Europe/Warsaw
+      PGTZ: Europe/Warsaw
     secrets:
       - postgres_password
     volumes:
@@ -34,6 +36,8 @@ services:
     restart: always
     environment:
       PGPASSWORD: /run/secrets/postgres_password
+      TZ: Europe/Warsaw
+      PGTZ: Europe/Warsaw
     secrets:
       - postgres_password
     volumes:
@@ -64,6 +68,8 @@ services:
     restart: always
     environment:
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      TZ: Europe/Warsaw
+      PGTZ: Europe/Warsaw
     secrets:
       - postgres_password
     volumes:
