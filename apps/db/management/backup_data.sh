@@ -1,22 +1,22 @@
 #!/bin/bash
+set -e
 
-SCRIPT_DIR=$(dirname -- $(realpath ${BASH_SOURCE}))
-CONTAINER_ID=$(docker ps -f name=db_database --quiet)
+export PGPASSWORD=$(cat /run/secrets/postgres_password)
 NOW=`date +"%Y-%m-%d_%H-%M-%S"`
 ACCOUNTANT_BACKUP_FILE_NAME=accountant_database_$NOW.sql
 BANKS_BACKUPS_FILE_NAME=banks_database_$NOW.sql
 SMART_HOME_BACKUPS_FILE_NAME=smart_home_database_$NOW.sql
 
-source $SCRIPT_DIR/../setup/setup_directories.sh
+if [ ! -s /var/lib/postgresql/data/PG_VERSION ]; then
+  pg_dump accountant -h rpi5 -U postgres -f /backup/$ACCOUNTANT_BACKUP_FILE_NAME
+  gzip -9 -c /backup/$ACCOUNTANT_BACKUP_FILE_NAME > /accountant_backups/$ACCOUNTANT_BACKUP_FILE_NAME.gz
+  rm -f /backup/$ACCOUNTANT_BACKUP_FILE_NAME
 
-docker exec $CONTAINER_ID pg_dump accountant -h localhost -U postgres -f /backup/$ACCOUNTANT_BACKUP_FILE_NAME
-gzip -9 -c $DATABASE_BACKUP_DIR/$ACCOUNTANT_BACKUP_FILE_NAME > $DATABASE_ACCOUNTANT_BACKUPS_DIR/$ACCOUNTANT_BACKUP_FILE_NAME.gz
-rm -f $DATABASE_BACKUP_DIR/$ACCOUNTANT_BACKUP_FILE_NAME
+  pg_dump banks -h rpi5 -U postgres -f /backup/$BANKS_BACKUPS_FILE_NAME
+  gzip -9 -c /backup/$BANKS_BACKUPS_FILE_NAME > /banks_backups/$BANKS_BACKUPS_FILE_NAME.gz
+  rm -f /backup/$BANKS_BACKUPS_FILE_NAME
 
-docker exec $CONTAINER_ID pg_dump banks -h localhost -U postgres -f /backup/$BANKS_BACKUPS_FILE_NAME
-gzip -9 -c $DATABASE_BACKUP_DIR/$BANKS_BACKUPS_FILE_NAME > $DATABASE_BANKS_BACKUPS_DIR/$BANKS_BACKUPS_FILE_NAME.gz
-rm -f $DATABASE_BACKUP_DIR/$BANKS_BACKUPS_FILE_NAME
-
-docker exec $CONTAINER_ID pg_dump smart_home -h localhost -U postgres -f /backup/$SMART_HOME_BACKUPS_FILE_NAME
-gzip -9 -c $DATABASE_BACKUP_DIR/$SMART_HOME_BACKUPS_FILE_NAME > $DATABASE_SMART_HOME_BACKUPS_DIR/$SMART_HOME_BACKUPS_FILE_NAME.gz
-rm -f $DATABASE_BACKUP_DIR/$SMART_HOME_BACKUPS_FILE_NAME
+  pg_dump smart_home -h rpi5 -U postgres -f /backup/$SMART_HOME_BACKUPS_FILE_NAME
+  gzip -9 -c /backup/$SMART_HOME_BACKUPS_FILE_NAME > /smart_home_backups/$SMART_HOME_BACKUPS_FILE_NAME.gz
+  rm -f /backup/$SMART_HOME_BACKUPS_FILE_NAME
+fi

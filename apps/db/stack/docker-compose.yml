@@ -46,11 +46,11 @@ services:
       - $DATABASE_ACCOUNTANT_BACKUPS_DIR:/accountant_backups
       - $DATABASE_BANKS_BACKUPS_DIR:/banks_backups
       - $DATABASE_SMART_HOME_BACKUPS_DIR:/smart_home_backups
-      - $DB_MANAGEMENT_DIR/backup_using_replica.sh:/backup_using_replica.sh
+      - $DB_MANAGEMENT_DIR/backup_data.sh:/backup_data.sh
     networks:
       - sg_app_network
       - cluster_network
-    entrypoint: ["/bin/bash", "/backup_using_replica.sh"]
+    entrypoint: ["/bin/bash", "/backup_data.sh"]
     deploy:
       labels:
         - "swarm.cronjob.enable=true"
