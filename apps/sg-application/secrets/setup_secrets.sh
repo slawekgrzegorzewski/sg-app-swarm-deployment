@@ -83,3 +83,6 @@ echo "op://Private/SG App secrets/mysql_root_password" | docker secret create my
 
 docker secret rm mysql_wordpress_password
 echo "op://Private/SG App secrets/mysql_wordpress_password" | docker secret create mysql_wordpress_password -
+
+docker secret rm brevo_smtp_password
+echo "op://Private/SG App secrets/brevo_smtp_password" | docker secret create brevo_smtp_password -

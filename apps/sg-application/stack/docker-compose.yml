@@ -28,6 +28,7 @@ services:
       - aws_pjm_lambda_function
       - aws_pjm_sns_topic_arn
       - random_org_api_key
+      - brevo_smtp_password
     volumes:
       - $APPLICATION_CONFIG_DIR/logback.xml:/app/logback.xml:ro
       - $SG_APPLICATION_LOGS_DIR:/app/logs/
@@ -57,6 +58,7 @@ services:
       - aws_region
       - aws_banks_sns_topic_arn
       - banks_db_password
+      - brevo_smtp_password
     volumes:
       - $APPLICATION_CONFIG_DIR/logback-banks.xml:/app/logback.xml:ro
       - $SG_BANKS_LOGS_DIR:/app/logs/
@@ -141,6 +143,8 @@ secrets:
   aws_pjm_sns_topic_arn:
     external: true
   aws_banks_sns_topic_arn:
+    external: true
+  brevo_smtp_password:
     external: true
   random_org_api_key:
     external: true

@@ -47,3 +47,11 @@ pjm:
 banks:
   rest-url:
     http://banks:8080
+
+email:
+  domain: grzegorzewski.pl
+  smtp:
+    host: smtp-relay.brevo.com
+    port: 587
+    username: af0e36001@smtp-brevo.com
+    password: {{ secret "brevo_smtp_password" }}
