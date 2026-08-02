@@ -42,6 +42,8 @@ function install_docker {
   sudo apt-get update
   sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
+  sudo addgroup --gid 77777 app
+  sudo usermod -aG app $USERNAME
   sudo usermod -aG docker $USERNAME
   sudo su - $USERNAME
   sudo systemctl enable docker.service

@@ -59,6 +59,7 @@ services:
       - aws_banks_sns_topic_arn
       - banks_db_password
       - brevo_smtp_password
+      - notification_email_to
     volumes:
       - $APPLICATION_CONFIG_DIR/logback-banks.xml:/app/logback.xml:ro
       - $SG_BANKS_LOGS_DIR:/app/logs/
@@ -147,6 +148,8 @@ secrets:
   brevo_smtp_password:
     external: true
   random_org_api_key:
+    external: true
+  notification_email_to:
     external: true
   sgapplication.crt:
     file: $SECRETS_DIR/certs/sgapplication.crt
