@@ -1,3 +1,3 @@
 #!/bin/bash
 
-sudo /usr/sbin/etherwake -i wlan0 34:6f:24:b4:b2:7b
+sudo /usr/sbin/etherwake -i eth0 bc:5f:f4:fa:e0:5b
