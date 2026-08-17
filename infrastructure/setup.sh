@@ -7,7 +7,7 @@ USERNAME=$1
 MAIN_AWS_ACCOUNT_KEY_ID=$2
 MAIN_AWS_ACCOUNT_ACCESS_KEY=$3
 LOGS_AWS_ACCOUNT_KEY_ID=$4
-LOGS_AWS_ACCOUNT_KEY_ID=$5
+LOGS_AWS_ACCOUNT_ACCESS_KEY=$5
 POSTGRES_PASSWORD=$6
 SMART_HOME_DB_PASSWORD=$7
 
@@ -97,22 +97,6 @@ function configure_aws_cli_and_access {
   sudo service docker restart
 }
 
-function configure_aws_agent {
-  wget https://amazoncloudwatch-agent.s3.amazonaws.com/ubuntu/arm64/latest/amazon-cloudwatch-agent.deb
-  sudo dpkg -i -E ./amazon-cloudwatch-agent.deb
-  rm amazon-cloudwatch-agent.deb
-
-  sudo cp ./cloud_watch_config.json /opt/aws/amazon-cloudwatch-agent/bin/config.json
-  sudo dos2unix /opt/aws/amazon-cloudwatch-agent/bin/config.json
-  sudo chmod 755 /opt/aws/amazon-cloudwatch-agent/bin/config.json
-
-  sudo echo "[credentials]" | sudo tee /opt/aws/amazon-cloudwatch-agent/etc/common-config.toml
-  sudo echo "        shared_credential_file = \"$HOME/.aws/credentials\"" | sudo tee -a /opt/aws/amazon-cloudwatch-agent/etc/common-config.toml
-
-  sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m onPremise -s -c file:/opt/aws/amazon-cloudwatch-agent/bin/config.json
-  sudo service amazon-cloudwatch-agent start
-}
-
 function setup_certbot {
   sudo apt update
   sudo apt install python3 python3-dev python3-venv libaugeas-dev gcc
@@ -136,5 +120,3 @@ install_docker
 # continue on all nodes
 configure_db
 configure_aws_cli_and_access
-#only on main node
-configure_aws_agent

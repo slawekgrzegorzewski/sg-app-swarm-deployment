@@ -21,7 +21,6 @@ val infrastructure = tasks.register<Zip>("infrastructure") {
         include("setup_directories.sh")
     }
     from("infrastructure/") {
-        include("cloud_watch_config.json")
         include("setup.sh")
     }
 }
@@ -77,6 +76,13 @@ val dockerPackage = tasks.register<Zip>("dockerPackage") {
         into("sg-application")
     }
     from("apps/infrastructure") {
+        include("management/*")
+        include("setup/*")
+        include("stack/*")
+        include("stack/config/*")
+        into("infrastructure")
+    }
+    from("apps/common") {
         include("management/*")
         include("setup/*")
         into("infrastructure")

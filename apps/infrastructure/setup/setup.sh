@@ -1,6 +1,14 @@
 #!/bin/bash
 
 SCRIPT_DIR=$(dirname -- $(realpath ${BASH_SOURCE}))
+source $SCRIPT_DIR/common/setup/setup_directories.sh
+
+mkdir -p "$SG_APPLICATION_LOGS_DIR"
+mkdir -p "$SG_BANKS_LOGS_DIR"
+mkdir -p "$CORE_GATEWAY_LOGS_DIR"
+mkdir -p "$DATABASE_LOGS_DIR"
+mkdir -p "$CLOUDWATCH_STATE_DIR"
+
 MANAGEMENT_DIR=$(realpath $SCRIPT_DIR/../management)
 
 sudo dos2unix $MANAGEMENT_DIR/*.sh

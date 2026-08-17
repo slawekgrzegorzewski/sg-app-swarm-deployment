@@ -3,13 +3,6 @@ version: '3.8'
 services:
 
   database:
-    logging:
-      driver: awslogs
-      options:
-        awslogs-region: eu-central-1
-        awslogs-group: app
-        awslogs-stream: db
-        awslogs-create-group: 'true'
     image: postgres:18.4
     ports:
       - "5432:5432"
@@ -18,11 +11,26 @@ services:
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       TZ: Europe/Warsaw
       PGTZ: Europe/Warsaw
+    command:
+      - postgres
+      - -c
+      - logging_collector=on
+      - -c
+      - log_directory=/var/log/postgresql
+      - -c
+      - log_filename=postgres-%Y-%m-%d_%H%M%S.log
+      - -c
+      - log_rotation_age=1d
+      - -c
+      - log_rotation_size=100MB
+      - -c
+      - log_truncate_on_rotation=on
     secrets:
       - postgres_password
     volumes:
       - $POSTGRES_DATA_DIR:/var/lib/postgresql
       - $DATABASE_BACKUP_DIR:/backup
+      - $DATABASE_LOGS_DIR:/var/log/postgresql
     networks:
       - sg_app_network
       - cluster_network

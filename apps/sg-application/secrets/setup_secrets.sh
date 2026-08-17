@@ -80,3 +80,7 @@ echo "op://Private/SG App secrets/notification_email_to" | docker secret create 
 
 docker secret rm brevo_smtp_password
 echo "op://Private/SG App secrets/brevo_smtp_password" | docker secret create brevo_smtp_password -
+
+docker secret rm cloudwatch_credentials
+echo "op://Private/SG App secrets/cloudwatch_credentials_base64" |
+  base64 --decode | docker secret create cloudwatch_credentials -

@@ -17,13 +17,6 @@ services:
           - node.hostname==PC2
 
   gateway:
-    logging:
-      driver: awslogs
-      options:
-        awslogs-region: eu-central-1
-        awslogs-group: app
-        awslogs-stream: core-gw
-        awslogs-create-group: 'true'
     image: nginx:1.25.4-bookworm
     container_name: nginx
     ports:
@@ -39,6 +32,7 @@ services:
       - $CORE_CONFIG_DIR/nginx.conf:/etc/nginx/nginx.conf:ro
       - $SECRETS_DIR/htpasswd:/auth/htpasswd:ro
       - $CORE_GATEWAY_HTML_DIR:/usr/share/nginx:ro
+      - $CORE_GATEWAY_LOGS_DIR:/var/log/nginx
     networks:
       - cluster_network
       - sg_app_network
