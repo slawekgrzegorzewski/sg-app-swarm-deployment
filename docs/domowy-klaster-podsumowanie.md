@@ -669,35 +669,30 @@ a nie tylko ostatni nocny dump.
 
 ---
 
-## 19. Registry zamiast Amazon ECR
+## 19. Zot zamiast Amazon ECR
 
-Chcesz odejść od ECR i przechowywać Docker images we własnym klastrze.
+Obrazy Docker są przechowywane we własnym klastrze, zamiast w Amazon ECR.
 
-Rozważaliśmy:
+Jako registry wybrany został **zot** (`ghcr.io/project-zot/zot`). Działa jako
+kompatybilny z Docker Registry v2 serwer OCI, z włączonym trybem `docker2s2`,
+wyszukiwaniem, UI oraz wbudowanym garbage collection.
+
+Storage registry jest trwały:
 
 ```text
-Docker Distribution registry:3
-zot
-Harbor
+$PERMANENT_DATA_DIR/registry/data
 ```
 
-### Aktualny kierunek
-
-Najbardziej interesujące:
-
-**zot**
-
-lub prostszy:
-
-**registry:3**
-
-Harbor uznaliśmy na razie za zbyt ciężki.
+W konfiguracji zot garbage collection uruchamia się automatycznie. Nie należy
+używać starego polecenia `registry garbage-collect`, które dotyczyło obrazu
+Docker Distribution.
 
 ---
 
-## 20. Registry jako Swarm service
+## 20. Zot jako Swarm service
 
-Registry również działa w Swarmie.
+Zot działa jako pojedyncza usługa Swarma przypięta do node'a przeznaczonego na
+registry.
 
 Np.:
 
@@ -713,13 +708,26 @@ placement:
     - node.labels.registry == true
 ```
 
-Storage np.:
+Konfiguracja usługi znajduje się w:
 
 ```text
-/srv/registry
+apps/core/stack/config/zot-config.json
 ```
 
-HTTPS przez reverse proxy.
+Dane są montowane do `/var/lib/registry`, a usługa nasłuchuje na porcie 5000
+w sieci Swarma. HTTPS i Basic Auth pozostają obsługiwane przez istniejący
+Nginx reverse proxy pod adresem:
+
+```text
+https://grzegorzewski.pl:5005
+```
+
+Interfejs webowy Zot jest dostępny pod adresem
+`https://grzegorzewski.pl:5005/` i jest chroniony przez ten sam Basic Auth co
+Docker Registry API.
+
+Docker clients nadal używają tego samego adresu registry, więc zmiana z
+Distribution Registry na zot nie wymaga zmiany pipeline'ów.
 
 ---
 
@@ -1282,7 +1290,7 @@ W kolejności, w której warto je zamykać:
 7. Zdecydować, czy na razie jeden manager wystarcza.
 8. Zaprojektować Ansible inventory i role.
 9. Ustalić strukturę `/srv`.
-10. Wybrać `zot` vs `registry:3`.
+10. Zot został wybrany zamiast `registry:3`.
 11. Wybrać reverse proxy.
 12. Zaprojektować self-hosted GitHub Runner.
 13. Zdecydować Docker socket vs osobny BuildKit.

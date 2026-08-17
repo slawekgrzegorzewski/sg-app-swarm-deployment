@@ -1,0 +1,32 @@
+{
+  "distSpecVersion": "1.1.1",
+  "storage": {
+    "rootDirectory": "/var/lib/registry",
+    "commit": true,
+    "dedupe": true,
+    "gc": true,
+    "gcDelay": "1h",
+    "gcInterval": "24h"
+  },
+  "http": {
+    "address": "0.0.0.0",
+    "port": "5000",
+    "compat": ["docker2s2"],
+    "readTimeout": "15m",
+    "writeTimeout": "15m"
+  },
+  "log": {
+    "level": "info"
+  },
+  "extensions": {
+    "search": {
+      "enable": true
+    },
+    "ui": {
+      "enable": true
+    },
+    "mgmt": {
+      "enable": true
+    }
+  }
+}

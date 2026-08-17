@@ -19,8 +19,6 @@ services:
       - $CORE_GATEWAY_LOGS_DIR:/logs/core-gateway:ro
       - $DATABASE_LOGS_DIR:/logs/database:ro
       - $CLOUDWATCH_STATE_DIR:/opt/aws/amazon-cloudwatch-agent/var
-#      - $INFRASTRUCTURE_CONFIG_DIR/cloudwatch-config.json:/etc/cwagentconfig/config.json
-#      - $INFRASTRUCTURE_CONFIG_DIR/cloudwatch-common-config.toml:/opt/aws/amazon-cloudwatch-agent/etc/common-config.toml
     deploy:
       mode: global
       restart_policy:
