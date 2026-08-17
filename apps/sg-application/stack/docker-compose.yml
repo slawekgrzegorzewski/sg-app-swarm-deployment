@@ -32,7 +32,6 @@ services:
     volumes:
       - $APPLICATION_CONFIG_DIR/logback.xml:/app/logback.xml:ro
       - $SG_APPLICATION_LOGS_DIR:/app/logs/
-      - $SG_APPLICATION_BIBLE_FILES_DIR:/app/bibleFiles/
       - $SG_APPLICATION_NODRIGEN_REQUESTS_LOGS_DIR:/app/nodrigenRequests
     networks:
       - sg_app_network
@@ -63,33 +62,6 @@ services:
     volumes:
       - $APPLICATION_CONFIG_DIR/logback-banks.xml:/app/logback.xml:ro
       - $SG_BANKS_LOGS_DIR:/app/logs/
-    networks:
-      - sg_app_network
-    deploy:
-      placement:
-        constraints:
-          - node.hostname==PC2
-
-  gateway:
-    logging:
-      driver: awslogs
-      options:
-        awslogs-region: eu-central-1
-        awslogs-group: app
-        awslogs-stream: sg-application-gw
-        awslogs-create-group: 'true'
-    image: nginx:1.25.4-bookworm
-    container_name: nginx
-    ports:
-      - 443:443
-    secrets:
-      - sgapplication.crt
-      - sgapplication.key
-      - sgapplication2.crt
-      - sgapplication2.key
-    volumes:
-      - $APPLICATION_CONFIG_DIR/nginx.conf:/etc/nginx/nginx.conf:ro
-      - $SG_APPLICATION_GATEWAY_DIR:/usr/share/nginx:ro
     networks:
       - sg_app_network
     deploy:
@@ -150,15 +122,6 @@ secrets:
     external: true
   notification_email_to:
     external: true
-  sgapplication.crt:
-    file: $SECRETS_DIR/certs/sgapplication.crt
-  sgapplication.key:
-    file: $SECRETS_DIR/certs/sgapplication.key
-  sgapplication2.crt:
-    file: $SECRETS_DIR/certs/sgapplication2.crt
-  sgapplication2.key:
-    file: $SECRETS_DIR/certs/sgapplication2.key
-
 networks:
   sg_app_network:
     external: true

@@ -8,6 +8,5 @@ mkdir -p $CORE_GATEWAY_HTML_DIR
 mkdir -p $CORE_REGISTRY_DATA_DIR
 
 mkdir -p $REGISTRY_DATA_DIR
-mkdir -p $WORDPRESS_HTML_DIR
 
 source $SECRETS_DIR/clear_secrets_from_env.sh
