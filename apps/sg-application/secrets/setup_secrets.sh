@@ -21,9 +21,6 @@ echo "op://Private/SG App secrets/go_cardless_secret_key" | docker secret create
 docker secret rm postgres_password
 echo "op://Private/SG App secrets/postgres_password" | docker secret create postgres_password`` -
 
-docker secret rm postgres_replica_password
-echo "op://Private/SG App secrets/replicator_password" | docker secret create postgres_replica_password`` -
-
 docker secret rm accountant_db_password
 echo "op://Private/SG App secrets/accountant_db_password" | docker secret create accountant_db_password`` -
 
@@ -77,12 +74,6 @@ echo "op://Private/SG App secrets/aws_banks_sns_topic_arn" | docker secret creat
 
 docker secret rm random_org_api_key
 echo "op://Private/SG App secrets/random_org_api_key" | docker secret create random_org_api_key -
-
-docker secret rm mysql_root_password
-echo "op://Private/SG App secrets/mysql_root_password" | docker secret create mysql_root_password -
-
-docker secret rm mysql_wordpress_password
-echo "op://Private/SG App secrets/mysql_wordpress_password" | docker secret create mysql_wordpress_password -
 
 docker secret rm notification_email_to
 echo "op://Private/SG App secrets/notification_email_to" | docker secret create notification_email_to -

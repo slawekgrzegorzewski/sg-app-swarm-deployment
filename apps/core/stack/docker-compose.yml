@@ -86,35 +86,6 @@ services:
         constraints:
           - node.hostname==PC2
 
-  wordpress:
-    logging:
-      driver: awslogs
-      options:
-        awslogs-region: eu-central-1
-        awslogs-group: app
-        awslogs-stream: wordpress
-        awslogs-create-group: 'true'
-    image: wordpress:6.8.1-php8.1-apache
-    restart: always
-    ports:
-      - 7777:80
-    environment:
-      WORDPRESS_DB_HOST: db_mysql_database
-      WORDPRESS_DB_USER: wordpress
-      WORDPRESS_DB_PASSWORD_FILE: /run/secrets/mysql_wordpress_password
-      WORDPRESS_DB_NAME: wordpress
-    volumes:
-      - $WORDPRESS_HTML_DIR:/var/www/html
-      - $CORE_CONFIG_DIR/wp-config.php:/var/www/html/wp-config.php:ro
-    secrets:
-      - mysql_wordpress_password
-    networks:
-      - wordpress_network
-    deploy:
-      placement:
-        constraints:
-          - node.hostname==PC2
-
   t310-reader:
     image: t310-reader:1.0.1
     secrets:
@@ -134,22 +105,7 @@ services:
         constraints:
           - node.hostname==PC2
 
-  prometheus:
-    image: prom/prometheus:v3
-    ports:
-      - 9090:9090
-    networks:
-      - cluster_network
-      - wordpress_network
-      - sg_app_network
-    deploy:
-      placement:
-        constraints:
-          - node.hostname==PC2
-
 secrets:
-  mysql_wordpress_password:
-    external: true
   smart_home_db_host:
     external: true
   smart_home_db_password:
@@ -168,7 +124,5 @@ secrets:
 networks:
   cluster_network:
     name: cluster_network
-  wordpress_network:
-    name: wordpress_network
   sg_app_network:
     external: true
