@@ -29,7 +29,7 @@ services:
       - postgres_password
     volumes:
       - $POSTGRES_DATA_DIR:/var/lib/postgresql
-      - $DATABASE_BACKUP_DIR:/backup
+      - $DATABASE_BACKUPS_DIR:/backups
       - $DATABASE_LOGS_DIR:/var/log/postgresql
     networks:
       - sg_app_network
@@ -50,10 +50,7 @@ services:
     secrets:
       - postgres_password
     volumes:
-      - $DATABASE_BACKUP_DIR:/backup
-      - $DATABASE_ACCOUNTANT_BACKUPS_DIR:/accountant_backups
-      - $DATABASE_BANKS_BACKUPS_DIR:/banks_backups
-      - $DATABASE_SMART_HOME_BACKUPS_DIR:/smart_home_backups
+      - $DATABASE_BACKUPS_DIR:/backups
       - $DB_MANAGEMENT_DIR/backup_data.sh:/backup_data.sh
     networks:
       - sg_app_network
