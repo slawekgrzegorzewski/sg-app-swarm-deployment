@@ -1,0 +1,2 @@
+---
+base_host_hostname: "{{ inventory_hostname }}"

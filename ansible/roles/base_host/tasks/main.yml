@@ -1,0 +1,56 @@
+---
+- name: Verify that the host runs a Debian-family operating system
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.os_family == 'Debian'
+    fail_msg: >-
+      This role currently supports Debian-family systems only.
+      Detected: {{ ansible_facts.distribution }} {{ ansible_facts.distribution_version }}.
+
+- name: Verify that the host has a 64-bit ARM architecture
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.architecture in ['aarch64', 'arm64']
+    fail_msg: >-
+      The RPi3 bootstrap expects a 64-bit ARM operating system.
+      Detected architecture: {{ ansible_facts.architecture }}.
+
+- name: Set the host name
+  ansible.builtin.hostname:
+    name: "{{ base_host_hostname }}"
+
+- name: Read the current system time zone
+  ansible.builtin.command:
+    cmd: timedatectl show --property=Timezone --value
+  register: base_host_current_timezone
+  changed_when: false
+
+- name: Set the system time zone
+  ansible.builtin.command:
+    cmd: "timedatectl set-timezone {{ cluster_timezone }}"
+  when: base_host_current_timezone.stdout != cluster_timezone
+
+- name: Refresh the APT package cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install base host packages
+  ansible.builtin.apt:
+    name: "{{ base_host_packages }}"
+    state: present
+
+- name: Ensure the cluster administrator belongs to the sudo group
+  ansible.builtin.user:
+    name: "{{ cluster_admin_user }}"
+    groups: sudo
+    append: true
+
+- name: Create the base persistent directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop: "{{ base_host_directories }}"

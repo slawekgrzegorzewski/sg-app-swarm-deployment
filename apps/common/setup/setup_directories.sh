@@ -2,21 +2,22 @@
 
 export CLUSTER_HOME=/home/slawek
 
-export POSTGRES_DATA_DIR=$CLUSTER_HOME/Docker/postgres
-export POSTGRES_HOTSTANDBY_DATA_DIR=$CLUSTER_HOME/Docker/postgres_hs
-export MYSQL_DATA_DIR=$CLUSTER_HOME/Docker/data_mysql
+export SRV_DIR=/srv
+export POSTGRES_DATA_DIR=$SRV_DIR/postgres
+export POSTGRES_HOTSTANDBY_DATA_DIR=$SRV_DIR/postgres-hot-standby
+export MYSQL_DATA_DIR=$SRV_DIR/mysql
 
 export CLUSTER_DIR=$CLUSTER_HOME/Cluster
 export SECRETS_DIR=$CLUSTER_DIR/secrets
-export PERMANENT_DATA_DIR=$CLUSTER_DIR/permanent_data
-export CORE_GATEWAY_HTML_DIR=$PERMANENT_DATA_DIR/core_gateway/html
-export CORE_GATEWAY_LOGS_DIR=$PERMANENT_DATA_DIR/core_gateway/logs
-export CORE_REGISTRY_DATA_DIR=$PERMANENT_DATA_DIR/registry/data
-export DATABASE_BACKUPS_DIR=$PERMANENT_DATA_DIR/database/backups
-export DATABASE_LOGS_DIR=$PERMANENT_DATA_DIR/database/logs
-export SG_APPLICATION_LOGS_DIR=$PERMANENT_DATA_DIR/sg-application/logs
-export SG_BANKS_LOGS_DIR=$PERMANENT_DATA_DIR/sg-banks/logs
-export CLOUDWATCH_STATE_DIR=$PERMANENT_DATA_DIR/cloudwatch/state
+export PERMANENT_DATA_DIR=$SRV_DIR
+export CORE_GATEWAY_HTML_DIR=$SRV_DIR/gateway/html
+export CORE_GATEWAY_LOGS_DIR=$SRV_DIR/logs/gateway
+export CORE_REGISTRY_DATA_DIR=$SRV_DIR/registry/data
+export DATABASE_BACKUPS_DIR=$SRV_DIR/backups/postgres
+export DATABASE_LOGS_DIR=$SRV_DIR/logs/database
+export SG_APPLICATION_LOGS_DIR=$SRV_DIR/logs/sg-application
+export SG_BANKS_LOGS_DIR=$SRV_DIR/logs/sg-banks
+export CLOUDWATCH_STATE_DIR=$SRV_DIR/cloudwatch/state
 
 export CORE_DIR=$CLUSTER_DIR/core
 export CORE_MANAGEMENT_DIR=$CORE_DIR/management
@@ -24,7 +25,6 @@ export CORE_SETUP_DIR=$CORE_DIR/setup
 export CORE_STACK_DIR=$CORE_DIR/stack
 export CORE_CONFIG_DIR=$CORE_STACK_DIR/config
 export REGISTRY_DIR=$CORE_STACK_DIR/registry
-export REGISTRY_DATA_DIR=$REGISTRY_DIR/data
 
 export DB_DIR=$CLUSTER_DIR/db
 export DB_MANAGEMENT_DIR=$DB_DIR/management
