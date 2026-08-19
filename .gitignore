@@ -36,3 +36,7 @@ out/
 
 ipStorage
 requests
+
+# Shared local SSH key used by the Vagrant test environment.
+/ansible-test/.ssh/
+/ansible-test/.vagrant/

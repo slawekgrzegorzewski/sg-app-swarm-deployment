@@ -1,0 +1,83 @@
+require "base64"
+require "fileutils"
+
+Vagrant.configure("2") do |config|
+  ssh_dir = File.expand_path(".ssh", __dir__)
+  private_key_path = File.join(ssh_dir, "slawek_vagrant_ed25519")
+  public_key_path = "#{private_key_path}.pub"
+
+  FileUtils.mkdir_p(ssh_dir)
+
+  if File.exist?(private_key_path) != File.exist?(public_key_path)
+    abort "Niepełna para kluczy SSH. Usuń ansible-test/.ssh/slawek_vagrant_ed25519* albo uzupełnij brakujący plik."
+  end
+
+  unless File.exist?(private_key_path)
+    unless system("ssh-keygen", "-q", "-t", "ed25519", "-f", private_key_path, "-N", "", "-C", "slawek@vagrant")
+      abort "Nie udało się wygenerować pary kluczy SSH poleceniem ssh-keygen."
+    end
+  end
+
+  public_key = File.read(public_key_path, encoding: "UTF-8").strip
+  encoded_public_key = Base64.strict_encode64("#{public_key}\n")
+
+  config.vm.box = "ubuntu/jammy64"
+  config.vm.box_check_update = false
+  # DHCP na karcie mostkowanej może wydłużyć start gościa.
+  config.vm.boot_timeout = 600
+  config.ssh.insert_key = false
+  # ubuntu/jammy64 w tym środowisku akceptuje domyślny klucz RSA Vagranta.
+  config.ssh.private_key_path = File.join(
+    Dir.home,
+    ".vagrant.d",
+    "insecure_private_keys",
+    "vagrant.key.rsa"
+  )
+
+  nodes = [
+     { name: "swarm-manager",  ip: "192.168.56.10", mac: "080027A10001" },
+     { name: "swarm-worker-1", ip: "192.168.56.11", mac: "080027A10002" },
+     { name: "swarm-worker-2", ip: "192.168.56.12", mac: "080027A10003" },
+     { name: "swarm-worker-3", ip: "192.168.56.13", mac: "080027A10004" }
+   ]
+
+  # Wybieraj fizyczną kartę LAN, a nie adapter VPN (np. NordLynx).
+  # Na innym hoście można ją nadpisać: $env:VAGRANT_BRIDGE = "nazwa adaptera"
+  bridge_adapter = ENV.fetch("VAGRANT_BRIDGE", "Intel(R) Ethernet Controller (2) I225-V")
+
+  nodes.each do |node|
+    config.vm.define node[:name] do |machine|
+      machine.vm.hostname = node[:name]
+      machine.vm.network "private_network", ip: node[:ip]
+      machine.vm.network "public_network", type: "dhcp", bridge: bridge_adapter, mac: node[:mac]
+      machine.vm.provider "virtualbox" do |virtualbox|
+        virtualbox.name = "ansible-test-#{node[:name]}"
+        virtualbox.cpus = 2
+        virtualbox.memory = 2048
+        virtualbox.check_guest_additions = false
+      end
+
+      machine.vm.provision "shell", inline: <<-SHELL
+        set -Eeuo pipefail
+        export DEBIAN_FRONTEND=noninteractive
+
+        apt-get update
+        apt-get install -y python3 python3-apt
+
+        if ! id -u slawek >/dev/null 2>&1; then
+          useradd --create-home --shell /bin/bash slawek
+        fi
+        usermod --append --groups sudo slawek
+
+        install -d -m 700 -o slawek -g slawek /home/slawek/.ssh
+        echo "#{encoded_public_key}" | base64 --decode > /home/slawek/.ssh/authorized_keys
+        chown slawek:slawek /home/slawek/.ssh/authorized_keys
+        chmod 600 /home/slawek/.ssh/authorized_keys
+
+        printf '%s\n' 'slawek ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/slawek
+        chmod 440 /etc/sudoers.d/slawek
+        visudo -cf /etc/sudoers.d/slawek
+      SHELL
+    end
+  end
+end
