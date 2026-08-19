@@ -1,0 +1,2 @@
+base_host_hostname: rpi3
+base_host_supported_architectures: [aarch64, arm64]

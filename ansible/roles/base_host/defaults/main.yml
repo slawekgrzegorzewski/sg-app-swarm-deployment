@@ -1,2 +1,6 @@
 ---
 base_host_hostname: "{{ inventory_hostname }}"
+# Leave empty for a generic Debian host.  An inventory may set this when it
+# needs to enforce a particular CPU architecture (for example on real RPis).
+base_host_supported_architectures: []
+base_host_extra_directories: []

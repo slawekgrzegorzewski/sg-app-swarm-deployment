@@ -1,0 +1,2 @@
+base_host_hostname: rpi5
+base_host_supported_architectures: [x86_64, amd64]

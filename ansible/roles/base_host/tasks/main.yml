@@ -7,13 +7,14 @@
       This role currently supports Debian-family systems only.
       Detected: {{ ansible_facts.distribution }} {{ ansible_facts.distribution_version }}.
 
-- name: Verify that the host has a 64-bit ARM architecture
+- name: Verify that the host has an allowed architecture
   ansible.builtin.assert:
     that:
-      - ansible_facts.architecture in ['aarch64', 'arm64']
+      - ansible_facts.architecture in base_host_supported_architectures
     fail_msg: >-
-      The RPi3 bootstrap expects a 64-bit ARM operating system.
+      This inventory expects one of {{ base_host_supported_architectures }}.
       Detected architecture: {{ ansible_facts.architecture }}.
+  when: base_host_supported_architectures | length > 0
 
 - name: Set the host name
   ansible.builtin.hostname:
@@ -53,4 +54,4 @@
     owner: "{{ item.owner }}"
     group: "{{ item.group }}"
     mode: "{{ item.mode }}"
-  loop: "{{ base_host_directories }}"
+  loop: "{{ base_host_directories + base_host_extra_directories }}"

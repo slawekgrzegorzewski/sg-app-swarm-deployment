@@ -1,0 +1,6 @@
+---
+- name: Prepare cluster hosts as base Linux hosts
+  hosts: bootstrap_hosts
+  gather_facts: true
+  roles:
+    - role: base_host

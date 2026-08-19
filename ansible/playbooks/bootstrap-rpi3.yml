@@ -1,8 +1,0 @@
----
-- name: Prepare Raspberry Pi 3 as a base host
-  hosts: rpi3
-  gather_facts: true
-  roles:
-    - role: base_host
-      vars:
-        base_host_hostname: rpi3
