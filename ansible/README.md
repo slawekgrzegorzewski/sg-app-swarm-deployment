@@ -1,8 +1,8 @@
 # Ansible
 
-The playbook prepares Debian-family cluster hosts as base Linux hosts. It does not install
-Docker, join Docker Swarm, deploy services, alter the firewall, or handle
-secrets.
+The playbook prepares Debian and Ubuntu cluster hosts with a base Linux
+configuration and Docker Engine. It does not join Docker Swarm, deploy
+services, alter the firewall, or handle secrets.
 
 Two inventories are provided:
 
@@ -14,6 +14,11 @@ Two inventories are provided:
 Shared variables for both environments live in `playbooks/group_vars`.
 Keep environment-specific connection details in each inventory's `hosts.yml`
 and `host_vars` directory.
+
+The registry is accessed over HTTPS, so the role does not create
+`/etc/docker/daemon.json` or configure insecure registries. Its certificate
+must validate against the host trust store; for a private CA, install that CA
+there instead of disabling registry verification.
 
 Run the generic helper from this directory. It selects the inventory and SSH
 key for the chosen environment:

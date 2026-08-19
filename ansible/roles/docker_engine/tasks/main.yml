@@ -1,0 +1,89 @@
+---
+- name: Verify that the host distribution is supported by Docker's APT repository
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.distribution in docker_engine_repository_distribution_map
+    fail_msg: >-
+      The docker_engine role supports Debian and Ubuntu only.
+      Detected: {{ ansible_facts.distribution }} {{ ansible_facts.distribution_version }}.
+
+- name: Verify that the host architecture is supported by Docker's APT repository
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.architecture in docker_engine_repository_architecture_map
+    fail_msg: >-
+      The docker_engine role does not support architecture {{ ansible_facts.architecture }}.
+
+- name: Install prerequisites for Docker's APT repository
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Create the APT keyring directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Install Docker's official APT signing key
+  ansible.builtin.get_url:
+    url: >-
+      https://download.docker.com/linux/{{ docker_engine_repository_distribution_map[ansible_facts.distribution] }}/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Configure Docker's official APT repository
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [arch={{ docker_engine_repository_architecture_map[ansible_facts.architecture] }} signed-by=/etc/apt/keyrings/docker.asc]
+      https://download.docker.com/linux/{{ docker_engine_repository_distribution_map[ansible_facts.distribution] }}
+      {{ ansible_facts.distribution_release }} stable
+    filename: docker
+    state: present
+    update_cache: true
+  register: docker_engine_repository
+
+- name: Explain Docker package checks skipped during the initial dry run
+  ansible.builtin.debug:
+    msg: >-
+      Docker's APT repository would be created in this check run. Package,
+      group, and service checks require its APT metadata, so they will run
+      after the first non-check apply.
+  when:
+    - ansible_check_mode
+    - docker_engine_repository.changed
+
+- name: Install Docker Engine and CLI plugins
+  ansible.builtin.apt:
+    name: "{{ docker_engine_packages }}"
+    state: present
+  when: not (ansible_check_mode and docker_engine_repository.changed)
+
+- name: Add the cluster administrator to the docker group
+  ansible.builtin.user:
+    name: "{{ cluster_admin_user }}"
+    groups: docker
+    append: true
+  when: not (ansible_check_mode and docker_engine_repository.changed)
+
+- name: Enable and start containerd
+  ansible.builtin.systemd:
+    name: containerd.service
+    enabled: true
+    state: started
+  when: not (ansible_check_mode and docker_engine_repository.changed)
+
+- name: Enable and start Docker Engine
+  ansible.builtin.systemd:
+    name: docker.service
+    enabled: true
+    state: started
+  when: not (ansible_check_mode and docker_engine_repository.changed)

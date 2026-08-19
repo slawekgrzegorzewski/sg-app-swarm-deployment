@@ -2,12 +2,12 @@
 
 ## Stan obecny
 
-- Wspólny playbook `playbooks/bootstrap-hosts.yml` przygotowuje hosty Debianowe.
+- Wspólny playbook `playbooks/bootstrap-hosts.yml` przygotowuje hosty Debianowe i Ubuntu z Docker Engine.
 - Dostępne są inventory `home` i `test`.
 - Oba inventory używają tych samych logicznych nazw hostów: `PC2`, `rpi5`, `rpi4`, `rpi3`.
 - Inventory testowe używa nazw DNS VM jako `ansible_host`.
 - Skrypt `bootstrap.sh` obsługuje tryby `check` i `apply`, wybór środowiska oraz limit hostów.
-- Rola `base_host` instaluje pakiety bazowe, ustawia hostname, strefę czasową, grupę sudo i katalogi.
+- Role `base_host` i `docker_engine` przygotowują pakiety bazowe, hostname, strefę czasową, grupy użytkownika, katalogi i Docker Engine.
 
 ## Kolejne prace
 
@@ -43,6 +43,8 @@ Drugie `apply` powinno zakończyć się bez nowych zmian, a wszystkie hosty powi
 
 ### 3. Rozdzielenie katalogów `/srv` według funkcji hosta
 
+Status: wykonane.
+
 Wspólne katalogi pozostawić w `base_host`. Katalogi specjalistyczne przenieść do zmiennych grupowych lub osobnych ról:
 
 - `postgres_nodes` — `/srv/postgres`, `/srv/postgres-hot-standby`;
@@ -51,16 +53,20 @@ Wspólne katalogi pozostawić w `base_host`. Katalogi specjalistyczne przenieś�
 
 ### 4. Rola `docker_engine`
 
-Rola powinna:
+Status: wykonane.
+
+Rola:
 
 - dodać oficjalne repozytorium Dockera;
 - zainstalować Docker Engine, CLI, containerd, Buildx i Compose;
 - dodać `cluster_admin_user` do grupy `docker`;
-- zarządzać `/etc/docker/daemon.json`;
 - włączyć i uruchomić Docker oraz containerd;
-- restartować usługi tylko po zmianie konfiguracji.
+- nie restartuje usług bez zmiany ich konfiguracji.
 
-Konfigurację rejestru i inne ustawienia Dockera trzymać w zmiennych inventory, a nie w zadaniach zapisanych na stałe.
+Registry jest dostępne przez HTTPS, dlatego `/etc/docker/daemon.json` nie jest
+potrzebny i rola go nie tworzy, o ile certyfikat jest zaufany przez hosta. W
+razie prywatnego CA należy dodać jego certyfikat do systemowego magazynu
+zaufanych certyfikatów, a nie konfigurować `insecure-registries`.
 
 ### 5. Rola `docker_swarm`
 
