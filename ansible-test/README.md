@@ -108,9 +108,10 @@ ansible-test/.ssh/vagrant_rpi3_ed25519.pub
 ```
 
 Podczas provisioningu wszystkie cztery klucze publiczne są dodawane do
-`/home/slawek/.ssh/authorized_keys` na każdej VM. Każda VM otrzymuje również
-wyłącznie swój własny prywatny klucz w `/home/slawek/.ssh/ansible-test/`, dzięki
-czemu może łączyć się SSH z pozostałymi nodami.
+`/home/slawek/.ssh/authorized_keys` na każdej VM. Prywatny klucz nie jest
+kopiowany przez Vagranta. Połączenia między nodami są przygotowywane przez krok
+`base_host` w playbooku Ansible: instaluje on na każdym nodzie wyłącznie jego
+własny klucz prywatny w `/home/slawek/.ssh/ansible-test/`.
 
 Jeśli Ansible i Vagrant działają na tym samym komputerze lub we wspólnym
 katalogu, skopiuj prywatne klucze do lokalnego katalogu wrappera:

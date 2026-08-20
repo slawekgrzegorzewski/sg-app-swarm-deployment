@@ -1,4 +1,4 @@
 ---
 docker_swarm_node_role: worker
 docker_swarm_manager_port: 2377
-docker_swarm_advertise_addr: "{{ ansible_host | default(inventory_hostname) }}"
+docker_swarm_advertise_addr: "{{ ansible_default_ipv4.address }}"

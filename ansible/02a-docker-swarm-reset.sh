@@ -5,7 +5,6 @@ ENVIRONMENT="${1:-home}"
 MODE="${2:-}"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/ansible-wrapper.sh"
-ansible_wrapper_initialize "$ENVIRONMENT"
 
 case "$MODE" in
   apply) ;;
@@ -18,4 +17,5 @@ case "$MODE" in
   *) echo "Only the explicit apply mode is supported for the destructive reset." >&2; exit 2 ;;
 esac
 
+ansible_wrapper_initialize "$ENVIRONMENT"
 ansible_wrapper_run playbooks/docker-swarm-reset.yml "$MODE"

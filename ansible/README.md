@@ -51,6 +51,11 @@ Apply changes to the Raspberry Pi:
 The initial SSH connection must already work for the `slawek` user and that
 user must have passwordless sudo access.
 
+During `apply`, the bootstrap role installs and enables `systemd-timesyncd`.
+It waits up to two minutes for NTP synchronization before continuing, which
+ensures that Docker Swarm certificates are created and validated with a
+consistent clock.
+
 ## SSH key and user
 
 The `home` wrappers read production keys from `~/.ssh/ansible-home` by default
@@ -65,20 +70,39 @@ export ANSIBLE_HOME_SSH_DIR=/path/to/.ssh
 ./01-bootstrap.sh home apply
 ```
 
+When a wrapper runs in WSL on Windows, it stages keys in a private directory
+under WSL's `/tmp` and removes that directory after Ansible finishes. For
+`test`, its source is always `../ansible-test/.ssh`. For `home`, provide the
+source directory explicitly:
+
+```bash
+export ANSIBLE_HOME_SSH_DIR=/mnt/d/secure/ansible-home
+./01-bootstrap.sh home apply
+```
+
 `ANSIBLE_TARGET_KEY` remains available as an explicit single-key override.
 
 ## Host-to-host SSH keys
 
-To install each production host's own private key under
-`~/.ssh/ansible-home`, after distributing all public keys, run:
+Podczas uruchomienia playbooku `bootstrap-hosts.yml` rola `base_host` kopiuje
+na każdy node wyłącznie jego własny klucz prywatny z katalogu kluczy kontrolera
+Ansible. Nie kopiuje prywatnych kluczy pozostałych hostów.
 
-```bash
-./distribute-host-ssh-keys.sh apply
-```
+* `home`: `~/.ssh/ansible-home/<nazwa-klucza>` na kontrolerze do
+  `~/.ssh/ansible-home/` na nodzie;
+* `test`: `~/.ssh/ansible-test/vagrant_<nazwa-hostu>_ed25519` na kontrolerze
+  do `~/.ssh/ansible-test/` na nodzie.
 
-The script never copies every private key to every host. It maps `PC2`, `rpi5`,
-`rpi4` and `rpi3` to their respective key pairs, and refuses to overwrite an
-existing private key unless `--force` is passed explicitly.
+Krok wymaga, aby na każdym nodzie były już obecne publiczne klucze wszystkich
+pozostałych nodów w `~/.ssh/authorized_keys`. Dla `test` zapewnia to Vagrant;
+dla `home` należy przygotować je przed pierwszym uruchomieniem playbooku.
+Prywatne klucze są zapisywane z uprawnieniami `0600`, a ich katalog z `0700`.
+Rola zarządza także blokiem w `~/.ssh/config`, ograniczonym do hostów klastra,
+który wybiera właściwy lokalny klucz. Po bootstrappingu nie trzeba podawać
+`-i`, np. `ssh slawek@ansible-test-swarm-node-1` w środowisku `test` albo
+`ssh slawek@rpi5` w środowisku `home`. Pierwszy klucz hosta jest automatycznie
+zapisywany w `known_hosts`; późniejsza zmiana tego klucza nadal przerywa
+połączenie jako potencjalnie niebezpieczna.
 
 
 ## Docker Swarm
@@ -86,6 +110,12 @@ existing private key unless `--force` is passed explicitly.
 The Swarm playbook assumes that Docker Engine is already installed and
 available on every host. It initializes the single manager (`PC2`) first and
 then joins `rpi5`, `rpi4` and `rpi3` as workers:
+
+Docker requires the Swarm advertise address to be a local IP address or
+interface name, not a DNS name. The test inventory explicitly uses the VMs'
+private `192.168.56.x` addresses. The default for other inventories is the
+host's default IPv4 address; override `docker_swarm_advertise_addr` per host
+when the cluster should use another network.
 
 ```bash
 export ANSIBLE_TARGET_KEY=/path/to/vagrant_pc2_ed25519

@@ -41,11 +41,81 @@
     name: "{{ base_host_packages }}"
     state: present
 
+- name: Install the system time synchronization service
+  ansible.builtin.apt:
+    name: systemd-timesyncd
+    state: present
+
+- name: Enable automatic system time synchronization
+  ansible.builtin.command:
+    cmd: timedatectl set-ntp true
+  changed_when: false
+  when: not ansible_check_mode
+
+- name: Ensure the system time synchronization service is running
+  ansible.builtin.systemd_service:
+    name: systemd-timesyncd.service
+    enabled: true
+    state: started
+  when: not ansible_check_mode
+
+- name: Wait for the system clock to synchronize
+  ansible.builtin.command:
+    cmd: timedatectl show --property=NTPSynchronized --value
+  register: base_host_ntp_synchronized
+  changed_when: false
+  until: base_host_ntp_synchronized.stdout | trim == 'yes'
+  retries: "{{ base_host_time_sync_retries }}"
+  delay: "{{ base_host_time_sync_delay }}"
+  when: not ansible_check_mode
+
 - name: Ensure the cluster administrator belongs to the sudo group
   ansible.builtin.user:
     name: "{{ cluster_admin_user }}"
     groups: sudo
     append: true
+
+- name: Verify that the host SSH private key is configured
+  ansible.builtin.assert:
+    that:
+      - base_host_ssh_private_key_name | length > 0
+      - base_host_ssh_private_key_name is match('^[A-Za-z0-9._-]+$')
+      - base_host_ssh_config_hosts | length > 0
+    fail_msg: >-
+      Set base_host_ssh_private_key_name to the filename of this host's
+      private key.
+
+- name: Create the directory for the host SSH private key
+  ansible.builtin.file:
+    path: "/home/{{ cluster_admin_user }}/.ssh/{{ base_host_ssh_private_key_directory }}"
+    state: directory
+    owner: "{{ cluster_admin_user }}"
+    group: "{{ cluster_admin_user }}"
+    mode: '0700'
+
+- name: Install the host SSH private key
+  ansible.builtin.copy:
+    src: "{{ ansible_home_ssh_dir }}/{{ base_host_ssh_private_key_name }}"
+    dest: "/home/{{ cluster_admin_user }}/.ssh/{{ base_host_ssh_private_key_directory }}/{{ base_host_ssh_private_key_name }}"
+    owner: "{{ cluster_admin_user }}"
+    group: "{{ cluster_admin_user }}"
+    mode: '0600'
+  no_log: true
+
+- name: Configure SSH to use the host private key for cluster connections
+  ansible.builtin.blockinfile:
+    path: "/home/{{ cluster_admin_user }}/.ssh/config"
+    create: true
+    owner: "{{ cluster_admin_user }}"
+    group: "{{ cluster_admin_user }}"
+    mode: '0600'
+    insertbefore: BOF
+    marker: "# {mark} ANSIBLE MANAGED CLUSTER SSH KEY"
+    block: |
+      Host {{ base_host_ssh_config_hosts | join(' ') }}
+        IdentityFile /home/{{ cluster_admin_user }}/.ssh/{{ base_host_ssh_private_key_directory }}/{{ base_host_ssh_private_key_name }}
+        IdentitiesOnly yes
+        StrictHostKeyChecking accept-new
 
 - name: Create the base persistent directories
   ansible.builtin.file:
