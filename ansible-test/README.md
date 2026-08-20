@@ -94,25 +94,50 @@ vagrant ssh-config swarm-worker-3
 
 ### Jako użytkownik `slawek`
 
-Wspólna para kluczy znajduje się w:
+Vagrant utrzymuje osobną parę kluczy dla każdego noda:
 
 ```text
-ansible-test/.ssh/slawek_vagrant_ed25519
-ansible-test/.ssh/slawek_vagrant_ed25519.pub
+ansible-test/.ssh/vagrant_pc2_ed25519
+ansible-test/.ssh/vagrant_pc2_ed25519.pub
+ansible-test/.ssh/vagrant_rpi5_ed25519
+ansible-test/.ssh/vagrant_rpi5_ed25519.pub
+ansible-test/.ssh/vagrant_rpi4_ed25519
+ansible-test/.ssh/vagrant_rpi4_ed25519.pub
+ansible-test/.ssh/vagrant_rpi3_ed25519
+ansible-test/.ssh/vagrant_rpi3_ed25519.pub
 ```
+
+Podczas provisioningu wszystkie cztery klucze publiczne są dodawane do
+`/home/slawek/.ssh/authorized_keys` na każdej VM. Każda VM otrzymuje również
+wyłącznie swój własny prywatny klucz w `/home/slawek/.ssh/ansible-test/`, dzięki
+czemu może łączyć się SSH z pozostałymi nodami.
+
+Jeśli Ansible i Vagrant działają na tym samym komputerze lub we wspólnym
+katalogu, skopiuj prywatne klucze do lokalnego katalogu wrappera:
+
+```bash
+install -d -m 700 ~/.ssh/ansible-test
+cp .ssh/vagrant_{pc2,rpi5,rpi4,rpi3}_ed25519 ~/.ssh/ansible-test/
+chmod 600 ~/.ssh/ansible-test/vagrant_{pc2,rpi5,rpi4,rpi3}_ed25519
+```
+
+Jeżeli Vagrant działa na innym komputerze, przekaż te cztery prywatne klucze
+bezpiecznym kanałem na komputer kontrolny, a następnie zapisz je w tym samym
+katalogu `~/.ssh/ansible-test/` z uprawnieniami `600`.
 
 Adres LAN trzeba sprawdzić poleceniem `ip -br addr` — jest przydzielany przez DHCP:
 
 ```powershell
 vagrant ssh swarm-manager -c "ip -br addr"
 
-ssh -i .\.ssh\slawek_vagrant_ed25519 slawek@<ADRES_LAN_NODA>
+ssh -i .\.ssh\vagrant_pc2_ed25519 slawek@<ADRES_LAN_MANAGERA>
+ssh -i .\.ssh\vagrant_rpi5_ed25519 slawek@<ADRES_LAN_WORKERA_1>
 ```
 
 Przykład dla sieci prywatnej Vagranta:
 
 ```powershell
-ssh -i .\.ssh\slawek_vagrant_ed25519 slawek@192.168.56.10
+ssh -i .\.ssh\vagrant_pc2_ed25519 slawek@192.168.56.10
 ```
 
 ## Sieć i porty

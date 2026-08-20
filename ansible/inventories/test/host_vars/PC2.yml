@@ -1,1 +1,2 @@
 base_host_hostname: PC2
+ansible_private_key_file: "{{ ansible_home_ssh_dir }}/vagrant_pc2_ed25519"

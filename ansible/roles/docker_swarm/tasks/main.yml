@@ -1,0 +1,63 @@
+---
+- name: Validate Docker Swarm inventory
+  ansible.builtin.assert:
+    that:
+      - groups['swarm_managers'] | length == 1
+      - docker_swarm_node_role in ['manager', 'worker']
+    fail_msg: >-
+      The initial Swarm implementation requires exactly one host in
+      swarm_managers and a node role of manager or worker.
+
+- name: Check Docker availability
+  ansible.builtin.command:
+    cmd: docker version --format '{% raw %}{{.Server.Version}}{% endraw %}'
+  register: docker_swarm_docker_version
+  changed_when: false
+
+- name: Read local Swarm state
+  ansible.builtin.command:
+    cmd: docker info --format '{% raw %}{{.Swarm.LocalNodeState}}{% endraw %}'
+  register: docker_swarm_local_state
+  changed_when: false
+
+- name: Initialize the Swarm manager
+  ansible.builtin.command:
+    cmd: >-
+      docker swarm init
+      --advertise-addr {{ docker_swarm_advertise_addr }}
+      --listen-addr 0.0.0.0:{{ docker_swarm_manager_port }}
+  when:
+    - docker_swarm_node_role == 'manager'
+    - docker_swarm_local_state.stdout | trim != 'active'
+  register: docker_swarm_init
+  changed_when: true
+
+- name: Read the worker join token from the manager
+  ansible.builtin.command:
+    cmd: docker swarm join-token -q worker
+  when: docker_swarm_node_role == 'manager'
+  register: docker_swarm_worker_token
+  changed_when: false
+  no_log: true
+
+- name: Join the Swarm as a worker
+  ansible.builtin.command:
+    cmd: >-
+      docker swarm join
+      --token {{ hostvars[groups['swarm_managers'][0]].docker_swarm_worker_token.stdout | trim }}
+      {{ hostvars[groups['swarm_managers'][0]].docker_swarm_advertise_addr }}:{{ docker_swarm_manager_port }}
+      --advertise-addr {{ docker_swarm_advertise_addr }}
+  when:
+    - docker_swarm_node_role == 'worker'
+    - docker_swarm_local_state.stdout | trim != 'active'
+  register: docker_swarm_join
+  changed_when: true
+  no_log: true
+
+- name: Verify that the node is active in Swarm
+  ansible.builtin.command:
+    cmd: docker info --format '{% raw %}{{.Swarm.LocalNodeState}}{% endraw %}'
+  register: docker_swarm_final_state
+  changed_when: false
+  failed_when: docker_swarm_final_state.stdout | trim != 'active'
+  when: not ansible_check_mode

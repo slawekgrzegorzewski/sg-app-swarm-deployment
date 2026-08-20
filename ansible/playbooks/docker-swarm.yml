@@ -1,0 +1,18 @@
+---
+- name: Initialize the Docker Swarm manager
+  hosts: swarm_managers
+  gather_facts: true
+  serial: 1
+  roles:
+    - role: docker_swarm
+      vars:
+        docker_swarm_node_role: manager
+
+- name: Join Docker Swarm workers
+  hosts: swarm_workers
+  gather_facts: true
+  serial: 1
+  roles:
+    - role: docker_swarm
+      vars:
+        docker_swarm_node_role: worker

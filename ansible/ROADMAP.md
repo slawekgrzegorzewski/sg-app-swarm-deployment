@@ -6,7 +6,7 @@
 - Dostępne są inventory `home` i `test`.
 - Oba inventory używają tych samych logicznych nazw hostów: `PC2`, `rpi5`, `rpi4`, `rpi3`.
 - Inventory testowe używa nazw DNS VM jako `ansible_host`.
-- Skrypt `bootstrap.sh` obsługuje tryby `check` i `apply`, wybór środowiska oraz limit hostów.
+- Skrypt `01-bootstrap.sh` obsługuje tryby `check` i `apply`, wybór środowiska oraz limit hostów.
 - Role `base_host` i `docker_engine` przygotowują pakiety bazowe, hostname, strefę czasową, grupy użytkownika, katalogi i Docker Engine.
 
 ## Kolejne prace
@@ -34,9 +34,9 @@ Na środowisku testowym wykonano dwukrotny `apply` oraz `check`; druga próba ni
 Powtórzenie testu:
 
 ```bash
-./bootstrap.sh test apply
-./bootstrap.sh test apply
-./bootstrap.sh test check
+./01-bootstrap.sh test apply
+./01-bootstrap.sh test apply
+./01-bootstrap.sh test check
 ```
 
 Drugie `apply` powinno zakończyć się bez nowych zmian, a wszystkie hosty powinny mieć `failed=0` i `unreachable=0`.
@@ -70,15 +70,17 @@ zaufanych certyfikatów, a nie konfigurować `insecure-registries`.
 
 ### 5. Rola `docker_swarm`
 
-Rola powinna:
+Status: wykonane.
+
+Rola [docker_swarm](/Users/slawekgrzegorzewski/Development/Slawek/sg-app-swarm-deployment/ansible/roles/docker_swarm) oraz playbooki `docker-swarm.yml` i `docker-swarm-reset.yml`:
 
 - inicjalizować Swarm na `swarm_managers`;
 - pobierać token workera z managera;
 - dołączać hosty z `swarm_workers`;
 - być bezpieczna przy ponownym uruchomieniu;
-- używać jawnego `swarm_advertise_addr`.
+- używają jawnego `docker_swarm_advertise_addr`.
 
-Operacje opuszczenia lub wymuszonego resetu Swarma powinny być osobnym, świadomie uruchamianym playbookiem.
+Operacje opuszczenia lub wymuszonego resetu Swarma są osobnym, świadomie uruchamianym playbookiem `docker-swarm-reset.yml`.
 
 ### 6. Etykiety nodów Swarma
 

@@ -1,0 +1,32 @@
+---
+- name: Leave Docker Swarm on worker nodes
+  hosts: swarm_workers
+  gather_facts: false
+  serial: 1
+  tasks:
+    - name: Read local Swarm state
+      ansible.builtin.command:
+        cmd: docker info --format '{% raw %}{{.Swarm.LocalNodeState}}{% endraw %}'
+      register: docker_swarm_reset_state
+      changed_when: false
+
+    - name: Leave the Swarm as a worker
+      ansible.builtin.command:
+        cmd: docker swarm leave
+      when: docker_swarm_reset_state.stdout | trim == 'active'
+
+- name: Leave Docker Swarm on manager nodes
+  hosts: swarm_managers
+  gather_facts: false
+  serial: 1
+  tasks:
+    - name: Read local Swarm state
+      ansible.builtin.command:
+        cmd: docker info --format '{% raw %}{{.Swarm.LocalNodeState}}{% endraw %}'
+      register: docker_swarm_reset_state
+      changed_when: false
+
+    - name: Leave the Swarm as a manager
+      ansible.builtin.command:
+        cmd: docker swarm leave --force
+      when: docker_swarm_reset_state.stdout | trim == 'active'
