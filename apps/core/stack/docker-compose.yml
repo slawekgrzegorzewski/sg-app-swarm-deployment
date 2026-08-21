@@ -107,4 +107,4 @@ networks:
   cluster_network:
     name: cluster_network
   sg_app_network:
-    external: true
+    name: sg_app_network
