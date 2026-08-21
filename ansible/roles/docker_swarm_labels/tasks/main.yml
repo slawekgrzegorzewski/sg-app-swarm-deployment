@@ -1,0 +1,21 @@
+---
+- name: Validate Docker Swarm label inventory
+  ansible.builtin.assert:
+    that:
+      - groups['swarm_managers'] | length == 1
+      - docker_swarm_node_labels is sequence
+    fail_msg: >-
+      The label playbook requires exactly one Swarm manager and a list of
+      inventory groups mapped to Docker node labels.
+
+- name: Check Docker availability on the Swarm manager
+  ansible.builtin.command:
+    cmd: docker version --format '{% raw %}{{.Server.Version}}{% endraw %}'
+  changed_when: false
+
+- name: Process configured Swarm node labels
+  ansible.builtin.include_tasks: apply-label.yml
+  loop: "{{ docker_swarm_node_labels }}"
+  loop_control:
+    loop_var: docker_swarm_label_spec
+    label: "{{ docker_swarm_label_spec.label }}"

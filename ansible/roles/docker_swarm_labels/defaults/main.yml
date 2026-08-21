@@ -1,0 +1,6 @@
+---
+docker_swarm_node_labels:
+  - label: postgres
+    inventory_group: postgres_nodes
+  - label: registry
+    inventory_group: registry_nodes

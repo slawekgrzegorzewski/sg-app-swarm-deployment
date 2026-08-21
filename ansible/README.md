@@ -137,6 +137,19 @@ and recreate the test Swarm, run the explicitly destructive reset playbook:
 ./02a-docker-swarm-reset.sh test apply
 ```
 
+## Swarm node labels
+
+After the Swarm is running, apply labels derived from the inventory groups:
+
+```bash
+./03-docker-swarm-labels.sh test check
+./03-docker-swarm-labels.sh test apply
+```
+
+The playbook currently manages `postgres=true` and `registry=true`. The
+`builder` label is intentionally not configured while builder nodes are
+disabled. Repeating `apply` does not update nodes whose labels already match.
+
 Or using the numbered reset wrapper:
 
 ```bash

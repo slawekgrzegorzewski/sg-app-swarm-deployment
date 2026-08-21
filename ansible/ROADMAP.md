@@ -20,8 +20,7 @@ Dodano wspólne grupy funkcjonalne w `home` i `test`:
 - `swarm_managers` — `PC2`;
 - `swarm_workers` — `rpi5`, `rpi4`, `rpi3`;
 - `postgres_nodes`;
-- `registry_nodes`;
-- `builder_nodes`.
+- `registry_nodes`.
 
 Role i playbooki używają tych grup zamiast nazw konkretnych maszyn.
 
@@ -88,9 +87,12 @@ Ustawić z managera etykiety używane przez stacki, np.:
 
 - `postgres=true`;
 - `registry=true`;
-- `builder=true`.
 
 Etykiety powinny wynikać z grup inventory i odpowiadać constraintom w plikach Compose.
+Etykieta `builder` została odłożona razem z funkcją builder nodes.
+
+Status: zaimplementowane w roli `docker_swarm_labels` i playbooku
+`playbooks/docker-swarm-labels.yml`, uruchamianym przez `03-docker-swarm-labels.sh`.
 
 ### 7. Firewall
 
