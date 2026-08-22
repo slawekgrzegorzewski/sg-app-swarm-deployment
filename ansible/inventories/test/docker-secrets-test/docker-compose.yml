@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  secret-printer:
+    image: alpine:3.22
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        for secret_path in /run/secrets/*; do
+          secret_name="$${secret_path##*/}"
+          printf '=== %s ===\n' "$${secret_name}"
+          cat "$${secret_path}"
+          printf '\n'
+        done
+    secrets:
+      - jwt_secret_code
+      - sendgrid_api_key
+      - nordigen_secret_id
+      - nordigen_secret_key
+      - go_cardless_secret_id
+      - go_cardless_secret_key
+      - postgres_password
+      - accountant_db_password
+      - banks_db_password
+      - smart_home_db_host
+      - smart_home_db_password
+      - tapo_user
+      - tapo_password
+      - tapo_device_ip
+      - pjm_downloader_aws_access_key_id
+      - pjm_downloader_aws_secret_access_key
+      - intellectual_property_s3_aws_access_key_id
+      - intellectual_property_s3_aws_secret_access_key
+      - sns-client-access-key-id
+      - sns-client-access-key
+      - aws_region
+      - aws_pjm_lambda_function
+      - aws_pjm_sns_topic_arn
+      - aws_banks_sns_topic_arn
+      - random_org_api_key
+      - notification_email_to
+      - brevo_smtp_password
+      - cloudwatch_credentials
+    deploy:
+      restart_policy:
+        condition: none
+      placement:
+        constraints:
+          - node.role == manager
+
+secrets:
+  jwt_secret_code:
+    external: true
+  sendgrid_api_key:
+    external: true
+  nordigen_secret_id:
+    external: true
+  nordigen_secret_key:
+    external: true
+  go_cardless_secret_id:
+    external: true
+  go_cardless_secret_key:
+    external: true
+  postgres_password:
+    external: true
+  accountant_db_password:
+    external: true
+  banks_db_password:
+    external: true
+  smart_home_db_host:
+    external: true
+  smart_home_db_password:
+    external: true
+  tapo_user:
+    external: true
+  tapo_password:
+    external: true
+  tapo_device_ip:
+    external: true
+  pjm_downloader_aws_access_key_id:
+    external: true
+  pjm_downloader_aws_secret_access_key:
+    external: true
+  intellectual_property_s3_aws_access_key_id:
+    external: true
+  intellectual_property_s3_aws_secret_access_key:
+    external: true
+  sns-client-access-key-id:
+    external: true
+  sns-client-access-key:
+    external: true
+  aws_region:
+    external: true
+  aws_pjm_lambda_function:
+    external: true
+  aws_pjm_sns_topic_arn:
+    external: true
+  aws_banks_sns_topic_arn:
+    external: true
+  random_org_api_key:
+    external: true
+  notification_email_to:
+    external: true
+  brevo_smtp_password:
+    external: true
+  cloudwatch_credentials:
+    external: true

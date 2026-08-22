@@ -1,8 +1,9 @@
 # Ansible
 
-The playbook prepares Debian and Ubuntu cluster hosts with a base Linux
-configuration and Docker Engine. It does not join Docker Swarm, deploy
-services, alter the firewall, or handle secrets.
+The bootstrap playbook prepares Debian and Ubuntu cluster hosts with a base
+Linux configuration and Docker Engine. Dedicated playbooks manage the Docker
+Swarm, firewall, Let's Encrypt tooling, and Docker Swarm secrets. They do not
+deploy application services.
 
 Two inventories are provided:
 
@@ -172,6 +173,90 @@ and recreate the test Swarm, run the explicitly destructive reset playbook:
 
 ```bash
 ./02a-docker-swarm-reset.sh test apply
+```
+
+## Docker Swarm secrets
+
+The secrets step creates or updates Swarm secrets on the manager from the
+references in `roles/docker_swarm_secrets/defaults/main.yml`. It uses the
+local 1Password CLI (`op read`) on the Ansible controller. Ansible sends each
+value to `docker secret create` on the manager through standard input, with the
+value protected by `no_log`. The manager does not need the 1Password CLI or
+1Password credentials. Before making changes, the role checks all Swarm
+services. An existing secret is recreated only when no service uses it;
+otherwise the play fails before changing any secrets. Because Docker does not
+expose stored secret values, every existing unused managed secret is recreated
+during `apply`.
+
+Install and authenticate the 1Password CLI on the computer that runs Ansible.
+Desktop-app integration, `op signin`, or a narrowly scoped service-account
+token can provide the local CLI session. The token is not stored in the
+repository or Ansible inventory. In WSL, the wrapper automatically finds a
+Windows installation of `op.exe` when no native `op` command exists. Set
+`ONEPASSWORD_CLI` to override the detected executable.
+
+```bash
+export OP_SERVICE_ACCOUNT_TOKEN='...'
+./06-docker-secrets.sh home check
+./06-docker-secrets.sh home apply
+```
+
+### Test-only secret reader
+
+The test inventory includes a one-shot Swarm service that mounts every managed
+secret and writes its name and value to the service logs. This intentionally
+exposes secret values and must never be deployed in the home environment.
+
+After creating the test secrets, stream the Compose file from the Ansible
+controller to the test manager:
+
+```bash
+./06-docker-secrets.sh test apply
+ssh ansible-test-swarm-manager \
+  'docker stack deploy --compose-file - docker-secrets-test' \
+  < inventories/test/docker-secrets-test/docker-compose.yml
+```
+
+PowerShell, run from the `ansible` directory:
+
+```powershell
+wsl.exe -d Ubuntu -- ./06-docker-secrets.sh test apply
+
+$composePath = 'inventories/test/docker-secrets-test/docker-compose.yml'
+$composePath = (Resolve-Path $composePath).Path
+
+Push-Location '..\ansible-test'
+try {
+    Get-Content -Raw -Encoding utf8 $composePath |
+        vagrant.exe ssh swarm-manager -c `
+            'sudo docker stack deploy --compose-file - docker-secrets-test'
+}
+finally {
+    Pop-Location
+}
+```
+
+Read the output and remove the test stack when finished:
+
+```bash
+ssh ansible-test-swarm-manager \
+  'docker service logs --raw docker-secrets-test_secret-printer'
+ssh ansible-test-swarm-manager 'docker stack rm docker-secrets-test'
+```
+
+PowerShell:
+
+```powershell
+Push-Location '..\ansible-test'
+try {
+    vagrant.exe ssh swarm-manager -c `
+        'sudo docker service logs --raw docker-secrets-test_secret-printer'
+    vagrant.exe ssh swarm-manager -c `
+        'sudo docker stack rm docker-secrets-test'
+}
+finally {
+    Pop-Location
+}
 ```
 
 ## Swarm node labels
