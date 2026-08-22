@@ -76,6 +76,7 @@ Rola [docker_swarm](/Users/slawekgrzegorzewski/Development/Slawek/sg-app-swarm-d
 - inicjalizować Swarm na `swarm_managers`;
 - pobierać token workera z managera;
 - dołączać hosty z `swarm_workers`;
+- tworzyć współdzielone sieci overlay `cluster_network` i `sg_app_network`;
 - być bezpieczna przy ponownym uruchomieniu;
 - używają jawnego `docker_swarm_advertise_addr`.
 

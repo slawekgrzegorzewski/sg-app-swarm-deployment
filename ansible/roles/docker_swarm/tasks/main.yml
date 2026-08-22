@@ -65,3 +65,57 @@
   changed_when: false
   failed_when: docker_swarm_final_state.stdout | trim != 'active'
   when: not ansible_check_mode
+
+- name: Validate managed Swarm overlay network names
+  ansible.builtin.assert:
+    that:
+      - item is match('^[a-zA-Z0-9][a-zA-Z0-9_.-]*$')
+    fail_msg: >-
+      Swarm overlay network names must contain only letters, numbers, dots,
+      underscores, and hyphens: {{ item }}.
+  loop: "{{ docker_swarm_overlay_networks }}"
+  when: docker_swarm_node_role == 'manager'
+
+- name: Read managed Swarm overlay networks
+  ansible.builtin.command:
+    cmd: >-
+      docker network inspect
+      --format '{% raw %}{{.Driver}} {{.Scope}}{% endraw %}'
+      {{ item }}
+  loop: "{{ docker_swarm_overlay_networks }}"
+  register: docker_swarm_overlay_network_state
+  changed_when: false
+  failed_when: false
+  when:
+    - not ansible_check_mode
+    - docker_swarm_node_role == 'manager'
+
+- name: Verify existing managed Swarm overlay networks
+  ansible.builtin.assert:
+    that:
+      - item.stdout | trim == 'overlay swarm'
+    fail_msg: >-
+      Docker network {{ item.item }} already exists but is not a
+      swarm-scoped overlay network.
+  loop: "{{ docker_swarm_overlay_network_state.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when:
+    - not ansible_check_mode
+    - docker_swarm_node_role == 'manager'
+    - item.rc == 0
+
+- name: Create missing Swarm overlay networks
+  ansible.builtin.command:
+    cmd: >-
+      docker network create
+      --driver overlay
+      --scope swarm
+      {{ item.item }}
+  loop: "{{ docker_swarm_overlay_network_state.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when:
+    - not ansible_check_mode
+    - docker_swarm_node_role == 'manager'
+    - item.rc != 0

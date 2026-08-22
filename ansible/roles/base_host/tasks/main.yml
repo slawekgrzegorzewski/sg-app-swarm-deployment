@@ -31,6 +31,20 @@
     cmd: "timedatectl set-timezone {{ cluster_timezone }}"
   when: base_host_current_timezone.stdout != cluster_timezone
 
+- name: Check whether the system time synchronization service is available
+  ansible.builtin.command:
+    cmd: systemctl show --property=LoadState --value systemd-timesyncd.service
+  register: base_host_timesyncd_load_state
+  changed_when: false
+  failed_when: false
+  when: not ansible_check_mode
+
+- name: Synchronize the system clock before using APT
+  ansible.builtin.include_tasks: synchronize-time.yml
+  when:
+    - not ansible_check_mode
+    - base_host_timesyncd_load_state.stdout | trim == 'loaded'
+
 - name: Refresh the APT package cache
   ansible.builtin.apt:
     update_cache: true
@@ -46,34 +60,11 @@
     name: systemd-timesyncd
     state: present
 
-- name: Enable automatic system time synchronization
-  ansible.builtin.command:
-    cmd: timedatectl set-ntp true
-  changed_when: false
-  when: not ansible_check_mode
-
-- name: Ensure the system time synchronization service is running
-  ansible.builtin.systemd_service:
-    name: systemd-timesyncd.service
-    enabled: true
-    state: started
-  when: not ansible_check_mode
-
-- name: Force the system time synchronization service to resynchronize
-  ansible.builtin.systemd_service:
-    name: systemd-timesyncd.service
-    state: restarted
-  when: not ansible_check_mode
-
-- name: Wait for the system clock to synchronize
-  ansible.builtin.command:
-    cmd: timedatectl show --property=NTPSynchronized --value
-  register: base_host_ntp_synchronized
-  changed_when: false
-  until: base_host_ntp_synchronized.stdout | trim == 'yes'
-  retries: "{{ base_host_time_sync_retries }}"
-  delay: "{{ base_host_time_sync_delay }}"
-  when: not ansible_check_mode
+- name: Synchronize the clock after installing the time synchronization service
+  ansible.builtin.include_tasks: synchronize-time.yml
+  when:
+    - not ansible_check_mode
+    - base_host_timesyncd_load_state.stdout | trim != 'loaded'
 
 - name: Ensure the cluster administrator belongs to the sudo group
   ansible.builtin.user:

@@ -111,6 +111,10 @@ The Swarm playbook assumes that Docker Engine is already installed and
 available on every host. It initializes the single manager (`PC2`) first and
 then joins `rpi5`, `rpi4` and `rpi3` as workers:
 
+It also creates the shared swarm-scoped overlay networks `cluster_network`
+and `sg_app_network`. Application stacks use these networks as external
+resources, so they are available before any stack is deployed.
+
 Docker requires the Swarm advertise address to be a local IP address or
 interface name, not a DNS name. The test inventory explicitly uses the VMs'
 private `192.168.56.x` addresses. The default for other inventories is the
