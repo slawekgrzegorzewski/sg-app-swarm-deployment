@@ -34,10 +34,12 @@ server:
 go-cardless:
   service-url: https://bankaccountdata.gocardless.com/api/v2/
 
-cron:
-  fetch-accounts: "0 30 11,15,17 * * *"
-  fetch-accounts-monthly: "0 58 23 * * *"
-  fetch-transactions: "0 45 7,11,15,18 * * *"
+scheduling:
+  zone: Europe/Warsaw
+  bank-data:
+    fetch-accounts: "0 30 11,15,17 * * *"
+    fetch-accounts-monthly: "0 58 23 * * *"
+    fetch-transactions: "0 45 7,11,15,18 * * *"
 
 email:
   domain: grzegorzewski.pl
