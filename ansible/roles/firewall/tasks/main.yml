@@ -1,0 +1,74 @@
+---
+- name: Install UFW
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Set default UFW policies
+  ansible.builtin.command:
+    cmd: "ufw default {{ item.policy }} {{ item.direction }}"
+  loop:
+    - { policy: deny, direction: incoming }
+    - { policy: allow, direction: outgoing }
+  changed_when: "false"
+  when: not ansible_check_mode
+
+- name: Allow cluster TCP ports
+  ansible.builtin.command:
+    cmd: >-
+      ufw allow from {{ firewall_cluster_network }} to any
+      port {{ item }} proto tcp
+  loop: "{{ firewall_cluster_tcp_ports }}"
+  register: firewall_cluster_tcp_rules
+  changed_when: "'Skipping' not in firewall_cluster_tcp_rules.stdout"
+  when: not ansible_check_mode
+
+- name: Allow SSH from administrative networks
+  ansible.builtin.command:
+    cmd: >-
+      ufw allow from {{ item }} to any port 22 proto tcp
+  loop: "{{ firewall_ssh_networks }}"
+  register: firewall_ssh_rules
+  changed_when: "'Skipping' not in firewall_ssh_rules.stdout"
+  when: not ansible_check_mode
+
+- name: Allow cluster UDP ports
+  ansible.builtin.command:
+    cmd: >-
+      ufw allow from {{ firewall_cluster_network }} to any
+      port {{ item }} proto udp
+  loop: "{{ firewall_cluster_udp_ports }}"
+  register: firewall_cluster_udp_rules
+  changed_when: "'Skipping' not in firewall_cluster_udp_rules.stdout"
+  when: not ansible_check_mode
+
+- name: Allow externally published TCP ports
+  ansible.builtin.command:
+    cmd: "ufw allow {{ item }}/tcp"
+  loop: "{{ firewall_external_tcp_ports }}"
+  register: firewall_external_tcp_rules
+  changed_when: "'Skipping' not in firewall_external_tcp_rules.stdout"
+  when: not ansible_check_mode
+
+- name: Read UFW status
+  ansible.builtin.command:
+    cmd: ufw status
+  register: firewall_status
+  changed_when: "false"
+
+- name: Enable UFW
+  ansible.builtin.command:
+    cmd: ufw --force enable
+  changed_when: "true"
+  when:
+    - not ansible_check_mode
+    - "'Status: inactive' in firewall_status.stdout"
+
+- name: Display Docker firewall limitation
+  ansible.builtin.debug:
+    msg: >-
+      UFW is configured for host traffic. Docker-published ports may bypass
+      UFW through Docker's iptables rules; enforce published-port restrictions
+      in the DOCKER-USER chain before exposing this host outside trusted networks.

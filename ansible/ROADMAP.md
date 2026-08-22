@@ -104,7 +104,12 @@ Po uruchomieniu Swarma dodać rolę firewall z regułami dla:
 - overlay network `4789/udp`;
 - wymaganych portów aplikacyjnych.
 
-Ruch Swarma ograniczyć do sieci klastra/VLAN-u.
+Ruch Swarma ograniczyć do sieci klastra `192.168.20.0/24` w środowisku home.
+Środowisko testowe używa `192.168.56.0/24`.
+
+Status: zaimplementowane w roli `firewall` i playbooku `playbooks/firewall.yml`,
+uruchamianym przez `04-firewall.sh`. Porty `80/tcp`, `443/tcp` i `5005/tcp`
+są dostępne zewnętrznie, a `5432/tcp` tylko z sieci klastra.
 
 ### 8. Oddzielenie provisioning od deploymentu
 

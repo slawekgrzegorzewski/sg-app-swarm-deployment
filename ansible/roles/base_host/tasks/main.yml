@@ -59,6 +59,12 @@
     state: started
   when: not ansible_check_mode
 
+- name: Force the system time synchronization service to resynchronize
+  ansible.builtin.systemd_service:
+    name: systemd-timesyncd.service
+    state: restarted
+  when: not ansible_check_mode
+
 - name: Wait for the system clock to synchronize
   ansible.builtin.command:
     cmd: timedatectl show --property=NTPSynchronized --value

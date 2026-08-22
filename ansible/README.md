@@ -150,6 +150,23 @@ The playbook currently manages `postgres=true` and `registry=true`. The
 `builder` label is intentionally not configured while builder nodes are
 disabled. Repeating `apply` does not update nodes whose labels already match.
 
+## Firewall
+
+Configure the host firewall after Docker Swarm is running:
+
+```bash
+./04-firewall.sh test check
+./04-firewall.sh test apply
+./04-firewall.sh home check
+./04-firewall.sh home apply
+```
+
+The home inventory limits Swarm traffic and PostgreSQL to `192.168.20.0/24`;
+the test inventory uses `192.168.56.0/24`. Published HTTP, HTTPS and registry
+ports (`80`, `443`, `5005`) are allowed externally. Docker-published ports may
+bypass UFW through Docker's iptables rules, so production restrictions for
+published ports must also be enforced in the `DOCKER-USER` chain.
+
 Or using the numbered reset wrapper:
 
 ```bash

@@ -1,0 +1,6 @@
+---
+- name: Configure firewall on cluster hosts
+  hosts: bootstrap_hosts
+  gather_facts: false
+  roles:
+    - role: firewall
