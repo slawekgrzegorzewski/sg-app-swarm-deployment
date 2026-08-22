@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+dry_run=false
+force_renewal=false
+
+for argument in "$@"; do
+  case "$argument" in
+    --dry-run) dry_run=true ;;
+    --force-renewal) force_renewal=true ;;
+    *)
+      echo "Usage: $(basename "$0") [--dry-run] [--force-renewal]" >&2
+      exit 2
+      ;;
+  esac
+done
+
+certbot_args=(
+  certbot certonly
+  --manual
+  --preferred-challenges http
+  --manual-public-ip-logging-ok
+  --non-interactive
+  --agree-tos
+  --email '{{ letsencrypt_email }}'
+  --cert-name '{{ letsencrypt_cert_name }}'
+  --keep-until-expiring
+  --manual-auth-hook '{{ letsencrypt_scripts_directory }}/authenticator.sh'
+  --manual-cleanup-hook '{{ letsencrypt_scripts_directory }}/cleanup.sh'
+{% for domain in letsencrypt_domains %}
+  --domains '{{ domain }}'
+{% endfor %}
+)
+
+if "$dry_run"; then
+  certbot_args+=(--dry-run)
+fi
+
+if "$force_renewal"; then
+  certbot_args+=(--force-renewal)
+fi
+
+"${certbot_args[@]}"
+
+if "$dry_run"; then
+  exit 0
+fi
+
+install -d -o '{{ cluster_admin_user }}' -g '{{ cluster_admin_user }}' -m 0700 \
+  '{{ letsencrypt_certificate_destination | dirname }}'
+install -o '{{ cluster_admin_user }}' -g '{{ cluster_admin_user }}' -m 0644 \
+  '{{ letsencrypt_live_directory }}/fullchain.pem' \
+  '{{ letsencrypt_certificate_destination }}'
+install -o '{{ cluster_admin_user }}' -g '{{ cluster_admin_user }}' -m 0600 \
+  '{{ letsencrypt_live_directory }}/privkey.pem' \
+  '{{ letsencrypt_private_key_destination }}'

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+challenge_directory='{{ letsencrypt_webroot }}/.well-known/acme-challenge'
+rm -f -- "$challenge_directory/$CERTBOT_TOKEN"

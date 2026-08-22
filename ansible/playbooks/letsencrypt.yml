@@ -1,0 +1,6 @@
+---
+- name: Install Let's Encrypt renewal tools
+  hosts: letsencrypt_hosts
+  gather_facts: true
+  roles:
+    - role: letsencrypt

@@ -1,0 +1,14 @@
+---
+letsencrypt_webroot: /srv/gateway/html/letsencrypt
+letsencrypt_email: slawek@grzegorzewski.pl
+letsencrypt_cert_name: grzegorzewski.pl
+letsencrypt_domains:
+  - grzegorzewski.pl
+  - be.grzegorzewski.pl
+  - mail.grzegorzewski.pl
+
+letsencrypt_live_directory: "/etc/letsencrypt/live/{{ letsencrypt_cert_name }}"
+letsencrypt_certificate_destination: "/home/{{ cluster_admin_user }}/Cluster/secrets/certs/sgapplication2.crt"
+letsencrypt_private_key_destination: "/home/{{ cluster_admin_user }}/Cluster/secrets/certs/sgapplication2.key"
+letsencrypt_scripts_directory: /usr/local/lib/sg-letsencrypt
+letsencrypt_renew_script: /usr/local/sbin/renew-application-certs

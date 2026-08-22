@@ -1,0 +1,34 @@
+---
+- name: Install Certbot
+  ansible.builtin.apt:
+    name: certbot
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Create the Let's Encrypt helper directory
+  ansible.builtin.file:
+    path: "{{ letsencrypt_scripts_directory }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Install the HTTP-01 challenge hooks
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ letsencrypt_scripts_directory }}/{{ item }}"
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - authenticator.sh
+    - cleanup.sh
+
+- name: Install the certificate renewal script
+  ansible.builtin.template:
+    src: renew-application-certs.j2
+    dest: "{{ letsencrypt_renew_script }}"
+    owner: root
+    group: root
+    mode: '0750'

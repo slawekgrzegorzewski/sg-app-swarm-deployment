@@ -51,6 +51,39 @@ Apply changes to the Raspberry Pi:
 The initial SSH connection must already work for the `slawek` user and that
 user must have passwordless sudo access.
 
+## Let's Encrypt
+
+The dedicated playbook installs Certbot plus a renewal script on every host in
+the `letsencrypt_hosts` group (`PC2` in the `home` inventory). During a
+request, its authenticator writes Certbot's HTTP-01 token under the Nginx
+webroot; its cleanup hook removes that token afterwards. A successful request
+copies `fullchain.pem` and `privkey.pem` to the files used to create the
+gateway's Docker Swarm secrets.
+
+Install or update the scripts:
+
+```bash
+./05-letsencrypt.sh home apply
+```
+
+With the gateway running and all configured domains publicly reachable on
+port 80, request or renew the certificate on `PC2`:
+
+```bash
+sudo /usr/local/sbin/renew-application-certs
+```
+
+To test the HTTP-01 validation flow without obtaining, saving, or deploying a
+production certificate, use Let's Encrypt's staging server:
+
+```bash
+sudo /usr/local/sbin/renew-application-certs --dry-run --force-renewal
+```
+
+`--force-renewal` ensures that the validation is exercised even when the current
+certificate is not close to expiry. In dry-run mode the script does not copy
+certificate files to the Docker Swarm secrets directory.
+
 During `apply`, the bootstrap role installs and enables `systemd-timesyncd`.
 It waits up to two minutes for NTP synchronization before continuing, which
 ensures that Docker Swarm certificates are created and validated with a
