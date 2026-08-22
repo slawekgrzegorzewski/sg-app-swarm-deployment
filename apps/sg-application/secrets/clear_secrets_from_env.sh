@@ -1,5 +1,0 @@
-#!/bin/bash
-
-unset REGISTRY_URL
-unset REGISTRY_USER
-unset REGISTRY_PASSWORD

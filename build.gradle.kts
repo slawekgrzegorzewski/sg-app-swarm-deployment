@@ -117,7 +117,7 @@ tasks.register("generate-secrets") {
         certsDir.mkdirs()
     }
     doLast {
-        arrayOf("setup_secrets.sh", "put_secrets_to_env.sh", "clear_secrets_from_env.sh").forEach {
+        arrayOf("setup_secrets.sh").forEach {
             exec {
                 commandLine(
                     "op", "inject", "--account", accountUUID,

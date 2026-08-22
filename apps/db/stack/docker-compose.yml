@@ -73,6 +73,6 @@ secrets:
 
 networks:
   sg_app_network:
-    name: sg_app_network
+    external: true
   cluster_network:
     external: true
