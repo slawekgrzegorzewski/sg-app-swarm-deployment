@@ -105,6 +105,6 @@ configs:
 
 networks:
   cluster_network:
-    name: cluster_network
+    external: true
   sg_app_network:
-    name: sg_app_network
+    external: true
