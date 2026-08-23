@@ -22,6 +22,7 @@ services:
     ports:
       - 80:80
       - 5005:5005
+      - 5006:5006
       - 443:443
     secrets:
       - sgapplication.crt

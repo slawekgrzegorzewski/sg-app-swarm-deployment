@@ -42,10 +42,13 @@ aws:
   intellectual-property-task:
     attachments:
       bucket-name: intellectualpropertytask
-
-pjm:
-  fetch: "0 0 17 * * *"
-  fetch2: "0 0 * * * *"
+scheduling:
+  zone: Europe/Warsaw
+  currency-rates:
+    fetch: "0 00 13 * * *"
+  pjm:
+    fetch: "0 0 17 * * *"
+    fetch2: "0 0 * * * *"
 
 banks:
   rest-url:
