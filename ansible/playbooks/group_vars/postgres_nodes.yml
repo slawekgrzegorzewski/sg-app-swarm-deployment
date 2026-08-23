@@ -1,5 +1,0 @@
-base_host_extra_directories:
-  - { path: /srv/backups/postgres, owner: slawek, group: slawek, mode: '0755' }
-  - { path: /srv/logs/database, owner: '999', group: '999', mode: '0755' }
-  - { path: /srv/postgres, owner: slawek, group: slawek, mode: '0755' }
-  - { path: /srv/postgres-hot-standby, owner: slawek, group: slawek, mode: '0755' }

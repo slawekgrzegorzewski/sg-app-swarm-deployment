@@ -5,7 +5,11 @@ on:
     branches:
       - main
   workflow_dispatch:
-    
+
+concurrency:
+  group: cluster-release
+  cancel-in-progress: false
+
 jobs:
   update:
     runs-on: ubuntu-latest
@@ -13,159 +17,49 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: stop docker containers
-        uses: appleboy/ssh-action@master
-        env:
-          SSH_USER: ${{ secrets.SSH_USER }}
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: 10000
-          script: |
-            /home/slawek/Cluster/core/management/stop_all.sh
-            sleep 5
-            /home/slawek/Cluster/core/management/stop_all.sh
-            sleep 5
-            /home/slawek/Cluster/core/management/stop_all.sh
-            sleep 20
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@417ae3ccd767c252f5661f1ace9f835f9654f2b5 # v3.1.0
-        with:
-          gradle-version: '8.5'
-
-      - name: Set up JDK 21
+      - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
-          distribution: 'zulu'
+          java-version: '25'
+          distribution: zulu
 
-      - name: Build with Gradle Wrapper
-        id: build
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@417ae3ccd767c252f5661f1ace9f835f9654f2b5 # v3.1.0
+        with:
+          gradle-version: '9.6.1'
+
+      - name: Build release archive
         run: |
-           gradle dockerPackage
-           mv build/distributions/docker.zip .
-           cp apps/utils/update_cluster.sh .
+          ./gradlew clusterRelease
+          cp build/distributions/cluster-release.tar.gz .
+          cp apps/utils/update_cluster.sh .
+          sha256sum cluster-release.tar.gz > cluster-release.sha256
 
-      - name: copy docker.zip via ssh password (PC2)
+      - name: Copy release to the Swarm manager
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
           port: 10000
-          source: docker.zip
-          target: /home/${{ secrets.SSH_USER }}/Cluster
+          source: cluster-release.tar.gz,cluster-release.sha256,update_cluster.sh
+          target: /tmp/cluster-deploy-${{ github.sha }}
 
-      - name: copy docker.zip via ssh password (rpi4)
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: 10004
-          source: docker.zip
-          target: /home/${{ secrets.SSH_USER }}/Cluster
-
-      - name: copy docker.zip via ssh password (rpi5)
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: 10005
-          source: docker.zip
-          target: /home/${{ secrets.SSH_USER }}/Cluster
-
-      - name: copy update_cluster.sh via ssh password (PC2)
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: 10000
-          source: update_cluster.sh
-          target: /home/${{ secrets.SSH_USER }}/Cluster
-
-      - name: copy update_cluster.sh via ssh password (rpi4)
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: 10004
-          source: update_cluster.sh
-          target: /home/${{ secrets.SSH_USER }}/Cluster
-
-      - name: copy update_cluster.sh via ssh password (rpi5)
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: 10005
-          source: update_cluster.sh
-          target: /home/${{ secrets.SSH_USER }}/Cluster
-
-      - name: unpack and deploy application files (PC2)
+      - name: Install and deploy release
         uses: appleboy/ssh-action@master
-        env:
-          SSH_USER: ${{ secrets.SSH_USER }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
           port: 10000
           script: |
-            cd /home/${{ secrets.SSH_USER }}/Cluster/
-            dos2unix update_cluster.sh
-            chmod +x update_cluster.sh
-            ./update_cluster.sh
-            rm update_cluster.sh
-
-      - name: unpack and deploy application files (rpi4)
-        uses: appleboy/ssh-action@master
-        env:
-          SSH_USER: ${{ secrets.SSH_USER }}
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: 10004
-          script: |
-            cd /home/${{ secrets.SSH_USER }}/Cluster/
-            dos2unix update_cluster.sh
-            chmod +x update_cluster.sh
-            ./update_cluster.sh
-            rm update_cluster.sh
-
-      - name: unpack and deploy application files (rpi5)
-        uses: appleboy/ssh-action@master
-        env:
-          SSH_USER: ${{ secrets.SSH_USER }}
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: 10005
-          script: |
-            cd /home/${{ secrets.SSH_USER }}/Cluster/
-            dos2unix update_cluster.sh
-            chmod +x update_cluster.sh
-            ./update_cluster.sh
-            rm update_cluster.sh
-
-      - name: start docker containers
-        uses: appleboy/ssh-action@master
-        env:
-          SSH_USER: ${{ secrets.SSH_USER }}
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: 10000
-          script: |
-            /home/slawek/Cluster/core/management/start_all.sh
+            set -eu
+            deploy_dir=/tmp/cluster-deploy-${{ github.sha }}
+            cd "$deploy_dir"
+            chmod 0755 update_cluster.sh
+            checksum=$(awk '{print $1}' cluster-release.sha256)
+            ./update_cluster.sh cluster-release.tar.gz '${{ github.sha }}' "$checksum"
+            cd /
+            rm -rf -- "$deploy_dir"

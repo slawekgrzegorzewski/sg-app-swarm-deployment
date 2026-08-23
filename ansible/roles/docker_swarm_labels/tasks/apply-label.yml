@@ -5,7 +5,7 @@
       docker node inspect
       --format '{% raw %}{{json .Spec.Labels}}{% endraw %}'
       {{ hostvars[item].base_host_hostname }}
-  loop: "{{ groups[docker_swarm_label_spec.inventory_group] | default([]) }}"
+  loop: "{{ groups.get(docker_swarm_label_spec.inventory_group, []) }}"
   loop_control:
     label: "{{ docker_swarm_label_spec.label }} -> {{ item }}"
   register: docker_swarm_label_state
@@ -53,8 +53,7 @@
     label: "{{ docker_swarm_label_spec.label }} -> {{ item.item }}"
   vars:
     docker_swarm_label_nodes: >-
-      {{ groups[docker_swarm_label_spec.inventory_group]
-         | default([])
+      {{ groups.get(docker_swarm_label_spec.inventory_group, [])
          | map('extract', hostvars)
          | map(attribute='base_host_hostname')
          | list }}

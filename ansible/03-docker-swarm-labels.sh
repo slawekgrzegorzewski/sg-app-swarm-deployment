@@ -10,7 +10,7 @@ case "$MODE" in
   check|apply) ;;
   ""|-h|--help)
     echo "Usage: $(basename "$0") [home|test] [check|apply]"
-    echo "Labels Swarm nodes using the functional groups from the inventory."
+    echo "Provisions workload directories and reconciles Swarm node labels."
     ansible_wrapper_usage_overrides
     exit 0
     ;;
@@ -18,4 +18,4 @@ case "$MODE" in
 esac
 
 ansible_wrapper_initialize "$ENVIRONMENT"
-ansible_wrapper_run playbooks/docker-swarm-labels.yml "$MODE"
+ansible_wrapper_run playbooks/cluster-layout.yml "$MODE"

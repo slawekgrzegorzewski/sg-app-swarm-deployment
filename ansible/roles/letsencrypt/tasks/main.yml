@@ -6,24 +6,48 @@
     update_cache: true
     cache_valid_time: 3600
 
-- name: Create the Let's Encrypt helper directory
-  ansible.builtin.file:
-    path: "{{ letsencrypt_scripts_directory }}"
-    state: directory
-    owner: root
-    group: root
-    mode: '0755'
+- name: Verify Docker Swarm manager availability for certificate secrets
+  ansible.builtin.command:
+    cmd: docker info --format '{% raw %}{{.Swarm.ControlAvailable}}{% endraw %}'
+  register: letsencrypt_swarm_manager_state
+  changed_when: false
+  check_mode: false
+  failed_when: letsencrypt_swarm_manager_state.stdout | trim != 'true'
 
-- name: Install the HTTP-01 challenge hooks
-  ansible.builtin.template:
-    src: "{{ item }}.j2"
-    dest: "{{ letsencrypt_scripts_directory }}/{{ item }}"
-    owner: root
-    group: root
-    mode: '0755'
+- name: Create Let's Encrypt directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
   loop:
-    - authenticator.sh
-    - cleanup.sh
+    - path: "{{ letsencrypt_scripts_directory }}"
+      owner: root
+      group: "{{ cluster_admin_user }}"
+      mode: '0755'
+    - path: "{{ letsencrypt_webroot }}"
+      owner: "{{ cluster_admin_user }}"
+      group: "{{ cluster_admin_user }}"
+      mode: '0755'
+    - path: "{{ letsencrypt_config_directory | dirname }}"
+      owner: root
+      group: "{{ cluster_admin_user }}"
+      mode: '0750'
+    - path: "{{ letsencrypt_config_directory }}"
+      owner: root
+      group: root
+      mode: '0700'
+    - path: "{{ letsencrypt_work_directory }}"
+      owner: root
+      group: root
+      mode: '0700'
+    - path: "{{ letsencrypt_logs_directory }}"
+      owner: root
+      group: root
+      mode: '0750'
+  loop_control:
+    label: "{{ item.path }}"
 
 - name: Install the certificate renewal script
   ansible.builtin.template:
@@ -32,3 +56,23 @@
     owner: root
     group: root
     mode: '0750'
+
+- name: Install the certificate renewal systemd units
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: '0644'
+  loop:
+    - "{{ letsencrypt_systemd_service }}"
+    - "{{ letsencrypt_systemd_timer }}"
+  notify: Reload systemd
+
+- name: Enable automatic certificate renewal
+  ansible.builtin.systemd_service:
+    name: "{{ letsencrypt_systemd_timer }}"
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: not ansible_check_mode

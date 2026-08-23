@@ -1,0 +1,129 @@
+---
+cluster_layout_common_directories:
+  - path: "{{ cluster_root }}"
+    owner: root
+    group: "{{ cluster_admin_user }}"
+    mode: '0775'
+  - path: "{{ cluster_root }}/data"
+    owner: root
+    group: root
+    mode: '0755'
+  - path: "{{ cluster_root }}/backups"
+    owner: root
+    group: root
+    mode: '0755'
+  - path: "{{ cluster_root }}/logs"
+    owner: root
+    group: root
+    mode: '0755'
+  - path: "{{ cluster_root }}/certificates"
+    owner: root
+    group: root
+    mode: '0755'
+  - path: "{{ cluster_root }}/www"
+    owner: root
+    group: root
+    mode: '0755'
+
+# Inventory group membership is the only source of truth for workload-specific
+# host directories. Moving a host between groups provisions the new node but
+# deliberately leaves data on the old node for explicit recovery or cleanup.
+cluster_layout_group_directories:
+  swarm_managers:
+    - path: "{{ cluster_root }}/releases"
+      owner: "{{ cluster_admin_user }}"
+      group: "{{ cluster_admin_user }}"
+      mode: '0755'
+    - path: "{{ cluster_root }}/bin"
+      owner: root
+      group: "{{ cluster_admin_user }}"
+      mode: '0755'
+  gateway_nodes:
+    - path: "{{ cluster_root }}/www/gateway"
+      owner: "{{ cluster_admin_user }}"
+      group: "{{ cluster_admin_user }}"
+      mode: '0755'
+    - path: "{{ cluster_root }}/logs/gateway"
+      owner: root
+      group: root
+      mode: '0755'
+  application_nodes:
+    - path: "{{ cluster_root }}/logs/backend"
+      owner: '77777'
+      group: '77777'
+      mode: '0750'
+    - path: "{{ cluster_root }}/logs/banks"
+      owner: '77777'
+      group: '77777'
+      mode: '0750'
+  postgres_nodes:
+    - path: "{{ cluster_root }}/data/postgres"
+      owner: '999'
+      group: '999'
+      mode: '0700'
+    - path: "{{ cluster_root }}/backups/postgres"
+      # postgres-backup and restore-postgres run in containers as UID 1000.
+      # A bind mount observes host numeric IDs, so this directory must be
+      # writable by that UID even when the cluster administrator has another
+      # UID (as in the Vagrant inventory).
+      owner: '1000'
+      group: "{{ cluster_admin_user }}"
+      # Keep administrative group access on archives created by the container.
+      mode: '2770'
+    - path: "{{ cluster_root }}/logs/postgres"
+      owner: '999'
+      group: '999'
+      mode: '0750'
+  registry_nodes:
+    - path: "{{ cluster_root }}/data/registry"
+      owner: "{{ cluster_admin_user }}"
+      group: "{{ cluster_admin_user }}"
+      mode: '0750'
+  observability_nodes:
+    - path: "{{ cluster_root }}/data/cloudwatch"
+      owner: root
+      group: root
+      mode: '0750'
+    # The CloudWatch agent currently reads file logs. Its global service needs
+    # every bind source to exist on each observability node.
+    - path: "{{ cluster_root }}/logs/gateway"
+      owner: root
+      group: root
+      mode: '0755'
+    - path: "{{ cluster_root }}/logs/backend"
+      owner: '77777'
+      group: '77777'
+      mode: '0750'
+    - path: "{{ cluster_root }}/logs/banks"
+      owner: '77777'
+      group: '77777'
+      mode: '0750'
+    - path: "{{ cluster_root }}/logs/postgres"
+      owner: '999'
+      group: '999'
+      mode: '0750'
+  letsencrypt_hosts:
+    - path: "{{ cluster_root }}/bin"
+      owner: root
+      group: "{{ cluster_admin_user }}"
+      mode: '0755'
+    - path: "{{ cluster_root }}/www/gateway"
+      owner: "{{ cluster_admin_user }}"
+      group: "{{ cluster_admin_user }}"
+      mode: '0755'
+    - path: "{{ cluster_root }}/certificates/letsencrypt"
+      owner: root
+      group: "{{ cluster_admin_user }}"
+      mode: '0750'
+    - path: "{{ cluster_root }}/certificates/letsencrypt/config"
+      owner: root
+      group: root
+      mode: '0700'
+    - path: "{{ cluster_root }}/certificates/letsencrypt/work"
+      owner: root
+      group: root
+      mode: '0700'
+    - path: "{{ cluster_root }}/logs/letsencrypt"
+      owner: root
+      group: root
+      mode: '0750'

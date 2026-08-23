@@ -1,0 +1,9 @@
+[Unit]
+Description=Renew cluster TLS certificate and rotate Docker Swarm secrets
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart={{ letsencrypt_renew_script }}

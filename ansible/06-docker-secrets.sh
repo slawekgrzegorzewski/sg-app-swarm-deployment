@@ -29,7 +29,7 @@ resolve_onepassword_cli() {
 
   if [[ -z "${ONEPASSWORD_CLI:-}" ]]; then
     echo "1Password CLI was not found on the Ansible controller." >&2
-    echo "Install 'op' or set ONEWPASSWORD_CLI to its executable path." >&2
+    echo "Install 'op' or set ONEPASSWORD_CLI to its executable path." >&2
     exit 127
   fi
 
@@ -40,7 +40,7 @@ case "$MODE" in
   check|apply) ;;
   ""|-h|--help)
     echo "Usage: $(basename "$0") [home|test] [check|apply]"
-    echo "Creates missing Docker Swarm secrets from 1Password on the manager."
+    echo "Creates or updates unused Docker Swarm secrets from 1Password on the manager."
     ansible_wrapper_usage_overrides
     exit 0
     ;;
@@ -49,7 +49,4 @@ esac
 
 ansible_wrapper_initialize "$ENVIRONMENT"
 resolve_onepassword_cli
-ansible_wrapper_run \
-  playbooks/docker-secrets.yml \
-  "$MODE" \
-  --extra-vars "docker_swarm_secrets_onepassword_cli=$ONEPASSWORD_CLI"
+ansible_wrapper_run playbooks/docker-secrets.yml "$MODE"

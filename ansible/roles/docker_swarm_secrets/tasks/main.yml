@@ -30,6 +30,14 @@
   changed_when: false
   check_mode: false
 
+- name: Create the cluster command directory
+  ansible.builtin.file:
+    path: "{{ docker_swarm_secrets_script | dirname }}"
+    state: directory
+    owner: root
+    group: "{{ cluster_admin_user }}"
+    mode: '0755'
+
 - name: Install the Docker Swarm secrets creation script
   ansible.builtin.template:
     src: create-docker-secrets.sh.j2

@@ -49,7 +49,7 @@ ansible_wrapper_cleanup_prepared_ssh_dir() {
   [[ -n "${ANSIBLE_WRAPPER_PREPARED_SSH_DIR:-}" ]] || return 0
 
   case "$ANSIBLE_WRAPPER_PREPARED_SSH_DIR" in
-    /tmp/sg-app-swarm-ansible-*-keys.*)
+    /tmp/cluster-ansible-*-keys.*)
       rm -rf -- "$ANSIBLE_WRAPPER_PREPARED_SSH_DIR"
       ANSIBLE_WRAPPER_PREPARED_SSH_DIR=""
       ;;

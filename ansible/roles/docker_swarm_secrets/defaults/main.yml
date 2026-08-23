@@ -1,7 +1,10 @@
 ---
-docker_swarm_secrets_script: /usr/local/sbin/create-docker-secrets
-docker_swarm_secrets_onepassword_cli: op
+docker_swarm_secrets_script: "{{ cluster_root }}/bin/create-docker-secrets"
+docker_swarm_secrets_onepassword_cli: >-
+  {{ lookup('ansible.builtin.env', 'ONEPASSWORD_CLI') | default('op', true) }}
 docker_swarm_secrets:
+  - name: registry_htpasswd
+    reference: op://Private/SG App secrets/htpasswd
   - name: jwt_secret_code
     reference: op://Private/SG App secrets/jwt_secret_code
   - name: sendgrid_api_key

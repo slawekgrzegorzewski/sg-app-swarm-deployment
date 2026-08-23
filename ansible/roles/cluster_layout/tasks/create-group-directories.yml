@@ -1,0 +1,11 @@
+---
+- name: Create directories for {{ cluster_layout_group.key }}
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop: "{{ cluster_layout_group.value }}"
+  loop_control:
+    label: "{{ item.path }}"

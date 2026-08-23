@@ -1311,3 +1311,6 @@ W kolejności, w której warto je zamykać:
 ## Nadrzędna zasada architektoniczna
 
 > **Ansible odtwarza maszyny, Swarm odtwarza usługi, a trwałe dane są jawnie wydzielone do `/srv` i backupowane poza node, na którym powstają.**
+> **Dokument historyczny.** Opisuje układ sprzed migracji do
+> `/srv/cluster`. Aktualne ścieżki, grupy inventory i procedury znajdują się w
+> [`ansible/README.md`](../ansible/README.md).

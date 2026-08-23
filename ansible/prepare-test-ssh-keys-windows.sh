@@ -62,7 +62,7 @@ esac
 }
 
 umask 077
-staging_directory="$(mktemp -d "${TMPDIR:-/tmp}/sg-app-swarm-ansible-${ENVIRONMENT}-keys.XXXXXX")"
+staging_directory="$(mktemp -d "${TMPDIR:-/tmp}/cluster-ansible-${ENVIRONMENT}-keys.XXXXXX")"
 
 cleanup_on_error() {
   rm -rf -- "$staging_directory"

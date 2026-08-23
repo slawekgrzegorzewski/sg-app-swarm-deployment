@@ -3,34 +3,50 @@ set -Eeuo pipefail
 
 dry_run=false
 force_renewal=false
+standalone=false
+gateway_service='{{ letsencrypt_gateway_service }}'
 
 for argument in "$@"; do
   case "$argument" in
     --dry-run) dry_run=true ;;
     --force-renewal) force_renewal=true ;;
+    --standalone) standalone=true ;;
     *)
-      echo "Usage: $(basename "$0") [--dry-run] [--force-renewal]" >&2
+      echo "Usage: $(basename "$0") [--dry-run] [--force-renewal] [--standalone]" >&2
       exit 2
       ;;
   esac
 done
 
+if ! docker service inspect "$gateway_service" >/dev/null 2>&1; then
+  standalone=true
+  echo 'Gateway service is not running; using Certbot standalone HTTP server.'
+fi
+
 certbot_args=(
   certbot certonly
-  --manual
   --preferred-challenges http
-  --manual-public-ip-logging-ok
   --non-interactive
   --agree-tos
   --email '{{ letsencrypt_email }}'
   --cert-name '{{ letsencrypt_cert_name }}'
   --keep-until-expiring
-  --manual-auth-hook '{{ letsencrypt_scripts_directory }}/authenticator.sh'
-  --manual-cleanup-hook '{{ letsencrypt_scripts_directory }}/cleanup.sh'
+  --config-dir '{{ letsencrypt_config_directory }}'
+  --work-dir '{{ letsencrypt_work_directory }}'
+  --logs-dir '{{ letsencrypt_logs_directory }}'
 {% for domain in letsencrypt_domains %}
   --domains '{{ domain }}'
 {% endfor %}
 )
+
+if "$standalone"; then
+  certbot_args+=(--standalone)
+else
+  certbot_args+=(
+    --webroot
+    --webroot-path '{{ letsencrypt_webroot }}'
+  )
+fi
 
 if "$dry_run"; then
   certbot_args+=(--dry-run)
@@ -46,11 +62,102 @@ if "$dry_run"; then
   exit 0
 fi
 
-install -d -o '{{ cluster_admin_user }}' -g '{{ cluster_admin_user }}' -m 0700 \
-  '{{ letsencrypt_certificate_destination | dirname }}'
-install -o '{{ cluster_admin_user }}' -g '{{ cluster_admin_user }}' -m 0644 \
-  '{{ letsencrypt_live_directory }}/fullchain.pem' \
-  '{{ letsencrypt_certificate_destination }}'
-install -o '{{ cluster_admin_user }}' -g '{{ cluster_admin_user }}' -m 0600 \
-  '{{ letsencrypt_live_directory }}/privkey.pem' \
-  '{{ letsencrypt_private_key_destination }}'
+certificate_file='{{ letsencrypt_live_directory }}/fullchain.pem'
+private_key_file='{{ letsencrypt_live_directory }}/privkey.pem'
+environment_file='{{ letsencrypt_current_secrets_environment }}'
+
+if [[ ! -s "$certificate_file" || ! -s "$private_key_file" ]]; then
+  echo 'Certbot completed but the expected certificate files are missing.' >&2
+  exit 1
+fi
+
+certificate_version="$({ sha256sum "$certificate_file" "$private_key_file"; } | sha256sum | cut -c1-16)"
+certificate_secret='{{ letsencrypt_certificate_secret_prefix }}_'"$certificate_version"
+private_key_secret='{{ letsencrypt_private_key_secret_prefix }}_'"$certificate_version"
+
+create_secret_if_missing() {
+  local name="$1"
+  local source_file="$2"
+
+  if docker secret inspect "$name" >/dev/null 2>&1; then
+    return
+  fi
+
+  docker secret create "$name" "$source_file" >/dev/null
+  printf 'Created Docker secret: %s\n' "$name"
+}
+
+create_secret_if_missing "$certificate_secret" "$certificate_file"
+create_secret_if_missing "$private_key_secret" "$private_key_file"
+
+install -d -o root -g '{{ cluster_admin_user }}' -m 0750 "$(dirname "$environment_file")"
+temporary_environment="$(mktemp "$(dirname "$environment_file")/.current-secrets.env.XXXXXX")"
+trap 'rm -f -- "$temporary_environment"' EXIT
+{
+  printf 'GATEWAY_TLS_CERTIFICATE_SECRET=%s\n' "$certificate_secret"
+  printf 'GATEWAY_TLS_PRIVATE_KEY_SECRET=%s\n' "$private_key_secret"
+} > "$temporary_environment"
+chown root:'{{ cluster_admin_user }}' "$temporary_environment"
+chmod 0640 "$temporary_environment"
+mv -f -- "$temporary_environment" "$environment_file"
+trap - EXIT
+
+if docker service inspect "$gateway_service" >/dev/null 2>&1; then
+  mapfile -t current_certificate_secrets < <(
+    docker service inspect "$gateway_service" \
+      --format '{% raw %}{{range .Spec.TaskTemplate.ContainerSpec.Secrets}}{{if eq .File.Name "gateway.crt"}}{{println .SecretName}}{{end}}{{end}}{% endraw %}'
+  )
+  mapfile -t current_private_key_secrets < <(
+    docker service inspect "$gateway_service" \
+      --format '{% raw %}{{range .Spec.TaskTemplate.ContainerSpec.Secrets}}{{if eq .File.Name "gateway.key"}}{{println .SecretName}}{{end}}{{end}}{% endraw %}'
+  )
+
+  service_update=(docker service update)
+  needs_update=false
+
+  for current_secret in "${current_certificate_secrets[@]}"; do
+    [[ -n "$current_secret" ]] || continue
+    if [[ "$current_secret" != "$certificate_secret" ]]; then
+      service_update+=(--secret-rm "$current_secret")
+      needs_update=true
+    fi
+  done
+  if [[ " ${current_certificate_secrets[*]} " != *" $certificate_secret "* ]]; then
+    service_update+=(--secret-add "source=$certificate_secret,target=gateway.crt,mode=0444")
+    needs_update=true
+  fi
+
+  for current_secret in "${current_private_key_secrets[@]}"; do
+    [[ -n "$current_secret" ]] || continue
+    if [[ "$current_secret" != "$private_key_secret" ]]; then
+      service_update+=(--secret-rm "$current_secret")
+      needs_update=true
+    fi
+  done
+  if [[ " ${current_private_key_secrets[*]} " != *" $private_key_secret "* ]]; then
+    service_update+=(--secret-add "source=$private_key_secret,target=gateway.key,mode=0400")
+    needs_update=true
+  fi
+
+  if "$needs_update"; then
+    service_update+=("$gateway_service")
+    "${service_update[@]}"
+  fi
+
+  while IFS= read -r old_secret; do
+    [[ -n "$old_secret" ]] || continue
+    case "$old_secret" in
+      '{{ letsencrypt_certificate_secret_prefix }}_'*|'{{ letsencrypt_private_key_secret_prefix }}_'*)
+        if [[ "$old_secret" != "$certificate_secret" && "$old_secret" != "$private_key_secret" ]]; then
+          if docker secret rm "$old_secret" >/dev/null 2>&1; then
+            printf 'Removed unused Docker secret: %s\n' "$old_secret"
+          fi
+        fi
+        ;;
+    esac
+  done < <(docker secret ls --format '{% raw %}{{.Name}}{% endraw %}')
+else
+  echo "Gateway service $gateway_service is not running; the next stack deployment will use the new secrets."
+fi
+
+printf 'Active certificate secrets recorded in %s\n' "$environment_file"

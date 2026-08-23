@@ -1,7 +1,0 @@
----
-- name: Label Docker Swarm nodes according to inventory groups
-  hosts: swarm_managers
-  gather_facts: false
-  serial: 1
-  roles:
-    - role: docker_swarm_labels

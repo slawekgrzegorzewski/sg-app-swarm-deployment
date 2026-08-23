@@ -51,3 +51,6 @@ volumes:
     primary_slot_name = 'replication_slot_standby1'
     restore_command = 'cp /var/lib/postgresql/data/pg_wal/%f "%p"'
 ```
+> **Instrukcja historyczna.** Nie jest używana przez aktualny provisioning ani
+> deployment. Bieżąca struktura hosta jest opisana w
+> [`ansible/README.md`](../ansible/README.md).

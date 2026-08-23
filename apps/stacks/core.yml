@@ -1,0 +1,122 @@
+version: '3.8'
+
+services:
+  swarm-cronjob:
+    image: crazymax/swarm-cronjob
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      TZ: Europe/Warsaw
+      LOG_LEVEL: info
+      LOG_JSON: 'false'
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+
+  gateway:
+    image: nginx:1.25.4-bookworm
+    ports:
+      - '80:80'
+      - '443:443'
+      - '5005:5005'
+    configs:
+      - source: gateway_nginx_config
+        target: /etc/nginx/nginx.conf
+    secrets:
+      - source: gateway_tls_certificate
+        target: gateway.crt
+        mode: 0444
+      - source: gateway_tls_private_key
+        target: gateway.key
+        mode: 0400
+      - source: registry_htpasswd
+        target: htpasswd
+        mode: 0444
+    volumes:
+      - type: bind
+        source: /srv/cluster/www/gateway
+        target: /usr/share/nginx
+        read_only: true
+      - type: bind
+        source: /srv/cluster/logs/gateway
+        target: /var/log/nginx
+    networks:
+      - cluster_network
+      - application_network
+    deploy:
+      placement:
+        constraints:
+          - node.labels.workload.gateway == true
+
+  registry:
+    image: ghcr.io/project-zot/zot:v2.1.20
+    configs:
+      - source: registry_config
+        target: /etc/zot/config.json
+    volumes:
+      - type: bind
+        source: /srv/cluster/data/registry
+        target: /var/lib/registry
+    networks:
+      - cluster_network
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.workload.registry == true
+      restart_policy:
+        condition: on-failure
+
+  t310-reader:
+    image: t310-reader:1.0.1
+    secrets:
+      - smart_home_db_host
+      - smart_home_db_password
+      - tapo_user
+      - tapo_password
+      - tapo_device_ip
+    deploy:
+      labels:
+        - swarm.cronjob.enable=true
+        - swarm.cronjob.schedule=* * * * *
+        - swarm.cronjob.skip-running=false
+      restart_policy:
+        condition: none
+      placement:
+        constraints:
+          - node.labels.workload.application == true
+
+configs:
+  gateway_nginx_config:
+    file: ../configs/core/nginx.conf
+    name: gateway_nginx_${CONFIG_VERSION:-0}
+  registry_config:
+    file: ../configs/core/zot-config.json
+    name: registry_config_${CONFIG_VERSION:-0}
+
+secrets:
+  gateway_tls_certificate:
+    external: true
+    name: ${GATEWAY_TLS_CERTIFICATE_SECRET:-gateway_tls_certificate}
+  gateway_tls_private_key:
+    external: true
+    name: ${GATEWAY_TLS_PRIVATE_KEY_SECRET:-gateway_tls_private_key}
+  registry_htpasswd:
+    external: true
+  smart_home_db_host:
+    external: true
+  smart_home_db_password:
+    external: true
+  tapo_user:
+    external: true
+  tapo_password:
+    external: true
+  tapo_device_ip:
+    external: true
+
+networks:
+  cluster_network:
+    external: true
+  application_network:
+    external: true

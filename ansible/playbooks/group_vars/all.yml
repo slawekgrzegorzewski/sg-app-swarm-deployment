@@ -1,5 +1,6 @@
 cluster_admin_user: slawek
 cluster_timezone: Europe/Warsaw
+cluster_root: /srv/cluster
 
 base_host_packages:
   - ca-certificates
@@ -9,15 +10,3 @@ base_host_packages:
   - gnupg
   - jq
   - unzip
-
-base_host_directories:
-  - { path: /srv, owner: root, group: root, mode: '0755' }
-  - { path: /srv/backups, owner: slawek, group: slawek, mode: '0755' }
-  - { path: /srv/cloudwatch, owner: root, group: root, mode: '0755' }
-  - { path: /srv/cloudwatch/state, owner: root, group: root, mode: '0755' }
-  - { path: /srv/gateway, owner: slawek, group: slawek, mode: '0755' }
-  - { path: /srv/gateway/html, owner: slawek, group: slawek, mode: '0755' }
-  - { path: /srv/logs, owner: root, group: root, mode: '0755' }
-  - { path: /srv/logs/gateway, owner: root, group: root, mode: '0755' }
-  - { path: /srv/logs/sg-application, owner: '77777', group: '77777', mode: '0755' }
-  - { path: /srv/logs/sg-banks, owner: '77777', group: '77777', mode: '0755' }

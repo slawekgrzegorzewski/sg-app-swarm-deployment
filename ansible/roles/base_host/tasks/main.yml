@@ -113,12 +113,3 @@
         IdentityFile /home/{{ cluster_admin_user }}/.ssh/{{ base_host_ssh_private_key_directory }}/{{ base_host_ssh_private_key_name }}
         IdentitiesOnly yes
         StrictHostKeyChecking accept-new
-
-- name: Create the base persistent directories
-  ansible.builtin.file:
-    path: "{{ item.path }}"
-    state: directory
-    owner: "{{ item.owner }}"
-    group: "{{ item.group }}"
-    mode: "{{ item.mode }}"
-  loop: "{{ base_host_directories + base_host_extra_directories }}"

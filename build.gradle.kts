@@ -1,157 +1,40 @@
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import java.io.ByteArrayOutputStream
-import java.nio.file.Paths
-
-buildscript {
-    dependencies {
-        classpath("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
-    }
-}
+import org.gradle.api.tasks.bundling.Compression
+import org.gradle.api.tasks.bundling.Tar
 
 plugins {
-    id("jvm-test-suite")
+    base
 }
 
-val infrastructure = tasks.register<Zip>("infrastructure") {
-    archiveFileName.set("infrastructure.zip")
-    from("apps/common/setup") {
-        include("setup_directories.sh")
-    }
-    from("infrastructure/") {
-        include("setup.sh")
-    }
-}
+val clusterRelease = tasks.register<Tar>("clusterRelease") {
+    group = "distribution"
+    description = "Packages manager-only Docker Swarm release files."
 
-val dockerPackage = tasks.register<Zip>("dockerPackage") {
-    archiveFileName.set("docker.zip")
-    from("apps/common") {
-        include("management/*")
-        include("setup/*")
-        into("core")
-    }
-    from("apps/core") {
-        include("management/*")
-        include("setup/*")
-        include("stack/*")
-        include("stack/config/*")
-        exclude("stack/README.md")
-        into("core")
-    }
-    from("apps/common") {
-        include("management/*")
-        include("setup/*")
-        into("db")
-    }
-    from("apps/db") {
-        include("management/*")
-        include("setup/*")
-        include("stack/*")
-        into("db")
-    }
-    from("apps/common") {
-        include("management/*")
-        include("setup/*")
-        into("db_mysql")
-    }
-    from("apps/db_mysql") {
-        include("management/*")
-        include("setup/*")
-        include("stack/*")
-        into("db_mysql")
-    }
-    from("apps/common") {
-        include("management/*")
-        include("setup/*")
-        into("sg-application")
-    }
-    from("apps/sg-application") {
-        include("management/*")
-        include("setup/*")
-        include("stack/*")
-        include("stack/config/*")
-        exclude("Dockerfile*")
-        into("sg-application")
-    }
-    from("apps/infrastructure") {
-        include("management/*")
-        include("setup/*")
-        include("stack/*")
-        include("stack/config/*")
-        into("infrastructure")
-    }
-    from("apps/common") {
-        include("management/*")
-        include("setup/*")
-        into("infrastructure")
-    }
-}
+    archiveFileName.set("cluster-release.tar.gz")
+    compression = Compression.GZIP
+    isPreserveFileTimestamps = false
+    isReproducibleFileOrder = true
 
-tasks.register("generate-secrets") {
-    val generatedDir = project.layout.buildDirectory.dir("generated/secrets/accountant").get().asFile
-    val certsDir = generatedDir.resolve("certs")
-    val sourceDir = file(
-        Paths.get(
-            "apps", "sg-application", "secrets"
-        )
-    )
-    val accountUUIDStdout = ByteArrayOutputStream()
-    exec {
-        commandLine(
-            "op",
-            "account",
-            "list",
-            "--format",
-            "json"
-        )
-        standardOutput = accountUUIDStdout
+    from("apps/stacks") {
+        into("stacks")
     }
-    val accountObject = Json.parseToJsonElement(accountUUIDStdout.toString()).jsonArray
-        .filter { it.jsonObject["email"]!!.jsonPrimitive.content == "slawek.grz@gmail.com" }[0].jsonObject
-    val accountUUID = accountObject["account_uuid"]!!.jsonPrimitive.content
-
-    doFirst {
-        generatedDir.deleteRecursively()
-        certsDir.mkdirs()
+    from("apps/configs") {
+        into("configs")
     }
-    doLast {
-        arrayOf("setup_secrets.sh").forEach {
-            exec {
-                commandLine(
-                    "op", "inject", "--account", accountUUID,
-                    "-i", sourceDir.resolve(it).path,
-                    "-o", generatedDir.resolve(it).path
-                )
+    from("apps/tools") {
+        into("tools")
+        filePermissions {
+            user {
+                read = true
+                write = true
+                execute = true
             }
-        }
-        arrayOf("htpasswd", "id_rsa", "id.pub").forEach {
-            exec {
-                commandLine(
-                    "op",
-                    "read",
-                    "--account",
-                    accountUUID,
-                    "op://Private/SG App secrets/" + it,
-                    "-o",
-                    generatedDir.resolve(it).path,
-                    "-f"
-                )
+            group {
+                read = true
+                execute = true
             }
-        }
-        arrayOf("sgapplication.key", "sgapplication.crt", "sgapplication2.key", "sgapplication2.crt").forEach {
-            exec {
-                commandLine(
-                    "op",
-                    "read",
-                    "--account",
-                    accountUUID,
-                    "op://Private/SG App secrets/" + it,
-                    "-o",
-                    certsDir.resolve(it).path,
-                    "-f"
-                )
+            other {
+                read = true
+                execute = true
             }
         }
     }

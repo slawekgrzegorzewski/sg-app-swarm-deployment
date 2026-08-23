@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  cloudwatch-agent:
+    image: amazon/cloudwatch-agent:latest
+    environment:
+      AWS_REGION: eu-central-1
+    secrets:
+      - source: cloudwatch_credentials
+        target: /root/.aws/credentials
+    configs:
+      - source: cloudwatch_config
+        target: /etc/cwagentconfig/config.json
+      - source: cloudwatch_common_config
+        target: /opt/aws/amazon-cloudwatch-agent/etc/common-config.toml
+    volumes:
+      - /srv/cluster/logs/backend:/logs/backend:ro
+      - /srv/cluster/logs/banks:/logs/banks:ro
+      - /srv/cluster/logs/gateway:/logs/gateway:ro
+      - /srv/cluster/logs/postgres:/logs/postgres:ro
+      - /srv/cluster/data/cloudwatch:/opt/aws/amazon-cloudwatch-agent/var
+    deploy:
+      mode: global
+      placement:
+        constraints:
+          - node.labels.workload.observability == true
+      restart_policy:
+        condition: any
+
+secrets:
+  cloudwatch_credentials:
+    external: true
+
+configs:
+  cloudwatch_config:
+    file: ../configs/infrastructure/cloudwatch-config.json
+    name: cloudwatch_config_${CONFIG_VERSION:-0}
+  cloudwatch_common_config:
+    file: ../configs/infrastructure/cloudwatch-common-config.toml
+    name: cloudwatch_common_config_${CONFIG_VERSION:-0}

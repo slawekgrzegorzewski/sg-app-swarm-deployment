@@ -14,6 +14,7 @@ services:
           printf '\n'
         done
     secrets:
+      - registry_htpasswd
       - jwt_secret_code
       - sendgrid_api_key
       - nordigen_secret_id
@@ -50,6 +51,8 @@ services:
           - node.role == manager
 
 secrets:
+  registry_htpasswd:
+    external: true
   jwt_secret_code:
     external: true
   sendgrid_api_key:

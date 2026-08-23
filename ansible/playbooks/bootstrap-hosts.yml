@@ -5,3 +5,4 @@
   roles:
     - role: base_host
     - role: docker_engine
+    - role: cluster_layout
