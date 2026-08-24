@@ -21,12 +21,12 @@ jobs:
         uses: appleboy/ssh-action@master
         env:
           IMAGE_TAG: ${{ inputs.image_tag }}
-        envs: IMAGE_TAG
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: 10000
+          envs: IMAGE_TAG
           script: |
             set -Eeuo pipefail
             /srv/cluster/current/tools/set-image-tag.sh backend "$IMAGE_TAG"
