@@ -59,6 +59,5 @@ docker_swarm_secrets:
     reference: op://Private/SG App secrets/notification_email_to
   - name: brevo_smtp_password
     reference: op://Private/SG App secrets/brevo_smtp_password
-  - name: cloudwatch_credentials
-    reference: op://Private/SG App secrets/cloudwatch_credentials_base64
-    encoding: base64
+  - name: grafana_admin_password
+    reference: op://Private/SG App secrets/grafana_admin_password

@@ -1,10 +1,14 @@
 version: '3.8'
 
-x-docker-json-logging: &docker_json_logging
-  driver: json-file
-  options:
-    max-size: 10m
-    max-file: '3'
+x-syslog-options: &syslog_options
+  syslog-address: ${LOGGING_SYSLOG_ADDRESS}
+  syslog-format: rfc5424
+  mode: non-blocking
+  max-buffer-size: 4m
+
+x-syslog-logging: &syslog_logging
+  driver: syslog
+  options: *syslog_options
 
 services:
   swarm-cronjob:
@@ -15,7 +19,11 @@ services:
       TZ: Europe/Warsaw
       LOG_LEVEL: info
       LOG_JSON: 'false'
-    logging: *docker_json_logging
+    logging:
+      <<: *syslog_logging
+      options:
+        <<: *syslog_options
+        tag: core_swarm-cronjob
     deploy:
       placement:
         constraints:
@@ -26,8 +34,6 @@ services:
     ports:
       - '80:80'
       - '443:443'
-      - '5005:5005'
-      - '5006:5006'
     configs:
       - source: gateway_nginx_config
         target: /etc/nginx/nginx.conf
@@ -49,7 +55,12 @@ services:
     networks:
       - cluster_network
       - application_network
-    logging: *docker_json_logging
+      - observability_network
+    logging:
+      <<: *syslog_logging
+      options:
+        <<: *syslog_options
+        tag: core_gateway
     deploy:
       placement:
         constraints:
@@ -66,7 +77,11 @@ services:
         target: /var/lib/registry
     networks:
       - cluster_network
-    logging: *docker_json_logging
+    logging:
+      <<: *syslog_logging
+      options:
+        <<: *syslog_options
+        tag: core_registry
     deploy:
       replicas: 1
       placement:
@@ -83,7 +98,11 @@ services:
       - tapo_user
       - tapo_password
       - tapo_device_ip
-    logging: *docker_json_logging
+    logging:
+      <<: *syslog_logging
+      options:
+        <<: *syslog_options
+        tag: core_t310-reader
     deploy:
       labels:
         - swarm.cronjob.enable=true
@@ -124,4 +143,6 @@ networks:
   cluster_network:
     external: true
   application_network:
+    external: true
+  observability_network:
     external: true

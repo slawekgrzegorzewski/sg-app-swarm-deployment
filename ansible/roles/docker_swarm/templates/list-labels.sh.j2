@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+docker node ls -q | while IFS= read -r node_id; do
+  docker node inspect "$node_id" --format '{{ '{{' }}.Description.Hostname{{ '}}' }}{{ '{{' }}range $key, $value := .Spec.Labels{{ '}}' }}{{ '{{' }}println ""{{ '}}' }}  {{ '{{' }}$key{{ '}}' }}={{ '{{' }}$value{{ '}}' }}{{ '{{' }}end{{ '}}' }}'
+done

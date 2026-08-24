@@ -79,6 +79,24 @@
     mode: '0755'
   when: docker_swarm_node_role == 'manager'
 
+- name: Install the Swarm node label listing command
+  ansible.builtin.template:
+    src: list-labels.sh.j2
+    dest: /srv/cluster/bin/list-labels
+    owner: root
+    group: root
+    mode: '0755'
+  when: docker_swarm_node_role == 'manager'
+
+- name: Install the observability endpoint environment
+  ansible.builtin.template:
+    src: observability.env.j2
+    dest: /srv/cluster/observability.env
+    owner: root
+    group: "{{ cluster_admin_user }}"
+    mode: '0644'
+  when: docker_swarm_node_role == 'manager'
+
 - name: Validate managed Swarm overlay network names
   ansible.builtin.assert:
     that:
@@ -98,7 +116,7 @@
   loop: "{{ docker_swarm_overlay_networks }}"
   register: docker_swarm_overlay_network_state
   changed_when: false
-  failed_when: false
+  failed_when: 'false'
   when:
     - not ansible_check_mode
     - docker_swarm_node_role == 'manager'

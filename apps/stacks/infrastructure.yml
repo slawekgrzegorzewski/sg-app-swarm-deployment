@@ -1,34 +1,166 @@
 version: '3.8'
 
+x-docker-json-logging: &docker_json_logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '3'
+
 services:
-  fluent-bit:
-    image: fluent/fluent-bit:5.1.1
-    environment:
-      AWS_REGION: eu-central-1
-      AWS_PROFILE: AmazonCloudWatchAgent
-      HOST_NODE: '{{.Node.Hostname}}'
-    secrets:
-      - source: cloudwatch_credentials
-        target: /root/.aws/credentials
+  loki:
+    image: grafana/loki:3.7.2
+    command:
+      - -config.file=/etc/loki/config.yml
     configs:
-      - source: fluent_bit_config
-        target: /fluent-bit/etc/fluent-bit.conf
+      - source: loki_config
+        target: /etc/loki/config.yml
     volumes:
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /srv/cluster/data/cloudwatch:/var/fluent-bit/state
+      - /srv/cluster/data/loki:/loki
+    networks:
+      - observability_network
+    logging: *docker_json_logging
     deploy:
-      mode: global
+      replicas: 1
       placement:
         constraints:
-          - node.labels.workload.observability == true
+          - node.role == manager
       restart_policy:
         condition: any
 
-secrets:
-  cloudwatch_credentials:
-    external: true
+  alloy:
+    image: grafana/alloy:v1.18.0
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --server.http.listen-addr=0.0.0.0:12345
+    configs:
+      - source: alloy_config
+        target: /etc/alloy/config.alloy
+    networks:
+      - observability_network
+    ports:
+      - target: 1514
+        published: 1514
+        protocol: tcp
+        mode: host
+    logging: *docker_json_logging
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+
+  prometheus:
+    image: prom/prometheus:v3.13.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --web.enable-lifecycle
+    configs:
+      - source: prometheus_config
+        target: /etc/prometheus/prometheus.yml
+        uid: '65534'
+        gid: '65534'
+        mode: 0444
+    volumes:
+      - /srv/cluster/data/prometheus:/prometheus
+    networks:
+      - observability_network
+    logging: *docker_json_logging
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+
+  grafana:
+    image: grafana/grafana:13.1.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_SERVER_DOMAIN: grafana.grzegorzewski.pl
+      GF_SERVER_ROOT_URL: https://grafana.grzegorzewski.pl/
+    secrets:
+      - grafana_admin_password
+    configs:
+      - source: grafana_datasources
+        target: /etc/grafana/provisioning/datasources/datasources.yml
+        uid: '472'
+        gid: '472'
+        mode: 0444
+    volumes:
+      - /srv/cluster/data/grafana:/var/lib/grafana
+    networks:
+      - observability_network
+    logging: *docker_json_logging
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:v1.9.1
+    command:
+      - --path.rootfs=/host
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - observability_network
+    logging: *docker_json_logging
+    deploy:
+      mode: global
+      endpoint_mode: dnsrr
+      restart_policy:
+        condition: any
+
+  cadvisor:
+    image: ghcr.io/google/cadvisor:v0.53.0
+    cap_add:
+      - SYS_ADMIN
+      - SYSLOG
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+      - /dev/kmsg:/dev/kmsg:ro
+    networks:
+      - observability_network
+    logging: *docker_json_logging
+    deploy:
+      mode: global
+      endpoint_mode: dnsrr
+      restart_policy:
+        condition: any
 
 configs:
-  fluent_bit_config:
-    file: ../configs/infrastructure/fluent-bit.conf
-    name: fluent_bit_config_${CONFIG_VERSION:-0}
+  alloy_config:
+    file: ../configs/infrastructure/alloy.alloy
+    name: alloy_config_${CONFIG_VERSION:-0}
+  loki_config:
+    file: ../configs/infrastructure/loki.yml
+    name: loki_config_${CONFIG_VERSION:-0}
+  prometheus_config:
+    file: ../configs/infrastructure/prometheus.yml
+    name: prometheus_config_${CONFIG_VERSION:-0}
+  grafana_datasources:
+    file: ../configs/infrastructure/grafana-datasources.yml
+    name: grafana_datasources_${CONFIG_VERSION:-0}
+
+secrets:
+  grafana_admin_password:
+    external: true
+
+networks:
+  observability_network:
+    external: true

@@ -4,6 +4,7 @@ firewall_ssh_networks:
   - "{{ firewall_cluster_network }}"
 firewall_cluster_tcp_ports:
   - 2377
+  - 1514
   - 5432
   - 7946
 firewall_cluster_udp_ports:
@@ -12,5 +13,3 @@ firewall_cluster_udp_ports:
 firewall_external_tcp_ports:
   - 80
   - 443
-  - 5005
-  - 5006

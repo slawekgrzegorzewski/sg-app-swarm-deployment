@@ -54,6 +54,19 @@ if [[ -r "$image_tags_file" ]]; then
   done < "$image_tags_file"
 fi
 
+observability_environment="$cluster_root/observability.env"
+if [[ -r "$observability_environment" ]]; then
+  set -a
+  source "$observability_environment"
+  set +a
+fi
+
+if [[ ! "${LOGGING_SYSLOG_ADDRESS:-}" =~ ^tcp://[^[:space:]/:]+:[0-9]{1,5}$ ]]; then
+  echo "Missing or invalid LOGGING_SYSLOG_ADDRESS in $observability_environment." >&2
+  echo "Run the Docker Swarm Ansible provisioning before deploying stacks." >&2
+  exit 1
+fi
+
 if [[ "$stack_name" == core ]]; then
   certificate_environment="$cluster_root/certificates/letsencrypt/current-secrets.env"
   if [[ ! -r "$certificate_environment" ]]; then
@@ -93,7 +106,8 @@ while IFS= read -r config_name; do
     gateway_nginx_*|registry_config_*|\
     postgres_backup_script_*|postgres_restore_script_*|\
     backend_application_*|banks_application_*|backend_logback_*|banks_logback_*|\
-    fluent_bit_config_*|cloudwatch_config_*|cloudwatch_common_config_*)
+    fluent_bit_config_*|cloudwatch_config_*|cloudwatch_common_config_*|\
+    alloy_config_*|loki_config_*|prometheus_config_*|grafana_datasources_*)
       config_stack="$(docker config inspect "$config_name" \
         --format '{{ index .Spec.Labels "com.docker.stack.namespace" }}' 2>/dev/null || true)"
       if [[ "$config_stack" =~ ^(core|database|application|infrastructure)$ && \

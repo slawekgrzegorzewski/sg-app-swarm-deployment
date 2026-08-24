@@ -105,10 +105,33 @@ znajdują się na hoście gatewaya.
 ## Docker Swarm
 
 `02-docker-swarm.sh` inicjalizuje jednego managera, dołącza workerów i tworzy
-dwie zewnętrzne sieci overlay:
+trzy zewnętrzne sieci overlay:
 
 - `cluster_network`;
 - `application_network`.
+- `observability_network`.
+
+## Obserwowalność
+
+Stack `infrastructure` uruchamia Loki, Alloy, Prometheus, Grafanę oraz
+globalne node-exporter i cAdvisor. Docker przekazuje logi usług przez swój
+wbudowany driver `syslog` do Alloy na managerze; na Raspberry Pi nie działa
+żaden collector Fluent Bit.
+
+Przed pierwszym wdrożeniem utwórz w 1Password pole
+`op://Private/SG App secrets/grafana_admin_password`, a następnie wykonaj:
+
+```bash
+./02-docker-swarm.sh home apply
+./03-docker-swarm-labels.sh home apply
+./04-firewall.sh home apply
+./06-docker-secrets.sh home apply
+```
+
+Pierwszy krok tworzy `observability_network` oraz zapisuje adres managera jako
+docelowy endpoint syslog. Grafana jest dostępna przez gateway pod
+`https://grafana.grzegorzewski.pl`; port 1514/TCP jest przeznaczony wyłącznie
+dla nodów klastra. Loki, Prometheus i Grafana nie publikują portów poza Swarm.
 
 Jawnie destrukcyjny reset testowego Swarma:
 
@@ -126,11 +149,10 @@ serwerze. Wartości są przesyłane do managera przez stdin i chronione przez
 `no_log`. Helper instalowany na managerze znajduje się pod
 `/srv/cluster/bin/create-docker-secrets`.
 
-Przed zmianą rola sprawdza wszystkie serwisy Swarma. Istniejący sekret jest
-odtwarzany tylko wtedy, gdy żaden serwis go nie używa; w przeciwnym razie cały
-preflight kończy się błędem przed pierwszą zmianą. Docker nie udostępnia
-wartości zapisanego sekretu, dlatego nieużywany istniejący sekret jest przy
-każdym `apply` tworzony ponownie.
+Przed zmianą rola sprawdza wszystkie serwisy Swarma. Sekret używany przez
+działającą usługę jest pomijany, aby można było nadal utworzyć inne, brakujące
+sekrety. Docker nie udostępnia wartości zapisanego sekretu, dlatego
+nieużywany istniejący sekret jest przy każdym `apply` tworzony ponownie.
 
 Na kontrolerze należy zainstalować i uwierzytelnić 1Password CLI. Sesję może
 zapewnić integracja z aplikacją desktopową, `op signin` albo ograniczony token
@@ -281,7 +303,9 @@ Ansible nie odrzucił ich z powodu uprawnień systemu plików Windows.
 ```
 
 Inventory `home` ogranicza komunikację klastra i PostgreSQL do
-`192.168.20.0/24`, a `test` do `192.168.56.0/24`. Porty `80`, `443`, `5005`
-i `5006` są publiczne. Port `5005` udostępnia wyłącznie publiczny pull z
-registry, a `5006` wymaga Basic Auth dla pull i push. Reguły UFW nie zastępują filtrowania ruchu publikowanego przez
+`192.168.20.0/24`, a `test` do `192.168.56.0/24`. Porty `80` i `443` są
+publiczne. Grafana jest dostępna pod `https://grafana.grzegorzewski.pl`.
+Publiczny pull z registry jest dostępny pod
+`https://public.registry.grzegorzewski.pl`, a prywatny registry z Basic Auth
+dla pull i push pod `https://private.registry.grzegorzewski.pl`. Reguły UFW nie zastępują filtrowania ruchu publikowanego przez
 Docker w łańcuchu `DOCKER-USER`.

@@ -715,16 +715,15 @@ apps/core/stack/config/zot-config.json
 ```
 
 Dane są montowane do `/var/lib/registry`, a usługa nasłuchuje na porcie 5000
-w sieci Swarma. HTTPS i Basic Auth pozostają obsługiwane przez istniejący
-Nginx reverse proxy pod adresem:
+w sieci Swarma. HTTPS pozostaje obsługiwany przez istniejący Nginx reverse
+proxy. Publiczny pull jest dostępny pod adresem:
 
 ```text
-https://grzegorzewski.pl:5005
+https://public.registry.grzegorzewski.pl
 ```
 
-Interfejs webowy Zot jest dostępny pod adresem
-`https://grzegorzewski.pl:5005/` i jest chroniony przez ten sam Basic Auth co
-Docker Registry API.
+Prywatny registry, wraz z interfejsem Zot i Basic Auth dla pull oraz push,
+jest dostępny pod `https://private.registry.grzegorzewski.pl/`.
 
 Docker clients nadal używają tego samego adresu registry, więc zmiana z
 Distribution Registry na zot nie wymaga zmiany pipeline'ów.

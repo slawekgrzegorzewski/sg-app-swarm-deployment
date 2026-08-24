@@ -67,6 +67,18 @@ cluster_layout_group_directories:
       owner: root
       group: root
       mode: '0750'
+    - path: "{{ cluster_root }}/data/loki"
+      owner: '10001'
+      group: '10001'
+      mode: '0750'
+    - path: "{{ cluster_root }}/data/prometheus"
+      owner: '65534'
+      group: '65534'
+      mode: '0750'
+    - path: "{{ cluster_root }}/data/grafana"
+      owner: '472'
+      group: '472'
+      mode: '0750'
   letsencrypt_hosts:
     - path: "{{ cluster_root }}/bin"
       owner: root

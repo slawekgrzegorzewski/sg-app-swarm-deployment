@@ -33,7 +33,7 @@ resolve_onepassword_cli() {
     exit 127
   fi
 
-  export ONEWPASSWORD_CLI
+  export ONEPASSWORD_CLI
 }
 
 case "$MODE" in

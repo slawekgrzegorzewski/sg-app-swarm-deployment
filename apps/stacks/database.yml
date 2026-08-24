@@ -1,10 +1,14 @@
 version: '3.8'
 
-x-docker-json-logging: &docker_json_logging
-  driver: json-file
-  options:
-    max-size: 10m
-    max-file: '3'
+x-syslog-options: &syslog_options
+  syslog-address: ${LOGGING_SYSLOG_ADDRESS}
+  syslog-format: rfc5424
+  mode: non-blocking
+  max-buffer-size: 4m
+
+x-syslog-logging: &syslog_logging
+  driver: syslog
+  options: *syslog_options
 
 services:
   postgres:
@@ -27,7 +31,11 @@ services:
     networks:
       - application_network
       - cluster_network
-    logging: *docker_json_logging
+    logging:
+      <<: *syslog_logging
+      options:
+        <<: *syslog_options
+        tag: database_postgres
     deploy:
       placement:
         constraints:
@@ -57,7 +65,11 @@ services:
     networks:
       - application_network
       - cluster_network
-    logging: *docker_json_logging
+    logging:
+      <<: *syslog_logging
+      options:
+        <<: *syslog_options
+        tag: database_postgres-backup
     entrypoint:
       - /bin/bash
       - /usr/local/bin/backup-data

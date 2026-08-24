@@ -53,7 +53,7 @@
       1Password or changed in check mode.
   when: ansible_check_mode
 
-- name: Verify that existing managed secrets are not used by Swarm services
+- name: Select managed secrets that can be safely created or updated
   ansible.builtin.command:
     argv: >-
       {{
@@ -62,8 +62,16 @@
       }}
   become: true
   become_user: "{{ cluster_admin_user }}"
+  register: docker_swarm_secrets_eligible
   changed_when: false
   when: not ansible_check_mode
+
+- name: Explain secrets skipped because active services use them
+  ansible.builtin.debug:
+    msg: "{{ docker_swarm_secrets_eligible.stderr_lines }}"
+  when:
+    - not ansible_check_mode
+    - docker_swarm_secrets_eligible.stderr | length > 0
 
 - name: Read Docker Swarm secrets from 1Password on the Ansible controller
   ansible.builtin.command:
@@ -73,7 +81,12 @@
       - "{{ item.reference }}"
   delegate_to: localhost
   become: false
-  loop: "{{ docker_swarm_secrets }}"
+  loop: >-
+    {{
+      docker_swarm_secrets
+      | selectattr('name', 'in', docker_swarm_secrets_eligible.stdout_lines)
+      | list
+    }}
   loop_control:
     label: "{{ item.name }}"
   register: docker_swarm_secrets_from_onepassword
