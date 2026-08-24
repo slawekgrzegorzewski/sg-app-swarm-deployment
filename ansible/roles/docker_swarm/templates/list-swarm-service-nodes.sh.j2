@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+docker service ls --format '{{ '{{' }}.Name{{ '}}' }}' |
+  while IFS= read -r service; do
+    echo "=== $service ==="
+    docker service ps "$service" \
+      --format 'table {{ '{{' }}.Name{{ '}}' }}\t{{ '{{' }}.Node{{ '}}' }}\t{{ '{{' }}.CurrentState{{ '}}' }}'
+  done

@@ -70,6 +70,15 @@
   failed_when: docker_swarm_final_state.stdout | trim != 'active'
   when: not ansible_check_mode
 
+- name: Install the Swarm service node listing command
+  ansible.builtin.template:
+    src: list-swarm-service-nodes.sh.j2
+    dest: /srv/cluster/bin/list-swarm-service-nodes
+    owner: root
+    group: root
+    mode: '0755'
+  when: docker_swarm_node_role == 'manager'
+
 - name: Validate managed Swarm overlay network names
   ansible.builtin.assert:
     that:
