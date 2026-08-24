@@ -1,9 +1,35 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+show_all=false
+
+case "${1:-}" in
+  '') ;;
+  -a|--all) show_all=true ;;
+  *)
+    echo "Usage: $(basename "$0") [-a|--all]" >&2
+    exit 2
+    ;;
+esac
+
 docker service ls --format '{{ '{{' }}.Name{{ '}}' }}' |
   while IFS= read -r service; do
-    echo "=== $service ==="
-    docker service ps "$service" \
-      --format 'table {{ '{{' }}.Name{{ '}}' }}\t{{ '{{' }}.Node{{ '}}' }}\t{{ '{{' }}.CurrentState{{ '}}' }}'
+    task_format='table {{ '{{' }}.Name{{ '}}' }}\t{{ '{{' }}.Node{{ '}}' }}\t{{ '{{' }}.CurrentState{{ '}}' }}'
+
+    if "$show_all"; then
+      echo "=== $service ==="
+      docker service ps "$service" --format "$task_format"
+      continue
+    fi
+
+    running_tasks="$(docker service ps "$service" \
+      --filter desired-state=running \
+      --format '{{ '{{' }}.CurrentState{{ '}}' }}')"
+
+    if grep -q '^Running ' <<<"$running_tasks"; then
+      echo "=== $service ==="
+      docker service ps "$service" \
+        --filter desired-state=running \
+        --format "$task_format"
+    fi
   done

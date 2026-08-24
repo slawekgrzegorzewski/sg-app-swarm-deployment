@@ -1,0 +1,6 @@
+# Managed by Ansible.  Available in login shells on the Swarm manager.
+case ":$PATH:" in
+  *:{{ cluster_root }}/bin:*) ;;
+  *) PATH="{{ cluster_root }}/bin:$PATH" ;;
+esac
+export PATH

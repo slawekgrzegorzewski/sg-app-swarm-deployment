@@ -46,6 +46,15 @@
   loop_control:
     label: "{{ item.path }}"
 
+- name: Add cluster commands to the manager login PATH
+  ansible.builtin.template:
+    src: cluster-bin-path.sh.j2
+    dest: /etc/profile.d/cluster-bin-path.sh
+    owner: root
+    group: root
+    mode: '0644'
+  when: inventory_hostname in groups.get('swarm_managers', [])
+
 - name: Create workload-specific cluster directories
   ansible.builtin.include_tasks: create-group-directories.yml
   loop: "{{ cluster_layout_group_directories | dict2items }}"
