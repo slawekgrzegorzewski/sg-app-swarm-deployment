@@ -69,7 +69,6 @@ ansible_wrapper_usage_overrides() {
 ansible_wrapper_run() {
   local playbook="$1"
   local mode="$2"
-  local -a extra_arguments=("${@:3}")
 
   command -v ansible-playbook >/dev/null 2>&1 || {
     echo "ansible-playbook was not found." >&2
@@ -99,7 +98,9 @@ ansible_wrapper_run() {
   if [[ -n "${ANSIBLE_TARGET_LIMIT:-}" ]]; then
     command+=(--limit "$ANSIBLE_TARGET_LIMIT")
   fi
-  command+=("${extra_arguments[@]}")
+  if (( $# > 2 )); then
+    command+=("${@:3}")
+  fi
   if [[ "$mode" == "check" ]]; then
     command+=(--check --diff)
   fi

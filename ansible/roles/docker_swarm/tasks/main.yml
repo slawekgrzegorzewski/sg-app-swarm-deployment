@@ -8,6 +8,10 @@
       The initial Swarm implementation requires exactly one host in
       swarm_managers and a node role of manager or worker.
 
+- name: Resolve the local Swarm advertise address
+  ansible.builtin.set_fact:
+    docker_swarm_effective_advertise_addr: "{{ docker_swarm_advertise_addr }}"
+
 - name: Check Docker availability
   ansible.builtin.command:
     cmd: docker version --format '{% raw %}{{.Server.Version}}{% endraw %}'
@@ -24,7 +28,7 @@
   ansible.builtin.command:
     cmd: >-
       docker swarm init
-      --advertise-addr {{ docker_swarm_advertise_addr }}
+      --advertise-addr {{ docker_swarm_effective_advertise_addr }}
       --listen-addr 0.0.0.0:{{ docker_swarm_manager_port }}
   when:
     - docker_swarm_node_role == 'manager'
@@ -45,8 +49,8 @@
     cmd: >-
       docker swarm join
       --token "$DOCKER_SWARM_WORKER_TOKEN"
-      {{ hostvars[groups['swarm_managers'][0]].docker_swarm_advertise_addr }}:{{ docker_swarm_manager_port }}
-      --advertise-addr {{ docker_swarm_advertise_addr }}
+      {{ hostvars[groups['swarm_managers'][0]].docker_swarm_effective_advertise_addr }}:{{ docker_swarm_manager_port }}
+      --advertise-addr {{ docker_swarm_effective_advertise_addr }}
     executable: /bin/bash
   environment:
     DOCKER_SWARM_WORKER_TOKEN: >-
