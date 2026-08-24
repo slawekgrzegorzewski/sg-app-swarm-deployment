@@ -13,6 +13,9 @@ services:
       - application_network
     logging: *docker_json_logging
     deploy:
+      placement:
+        constraints:
+          - node.labels.workload.application == true
       replicas: 1
       update_config:
         order: start-first
@@ -51,6 +54,10 @@ services:
     networks:
       - application_network
     logging: *docker_json_logging
+    deploy:
+      placement:
+        constraints:
+          - node.labels.workload.application == true
 
   banks:
     image: grzegorzewski.pl:5005/banks:${BANKS_IMAGE_TAG:-latest}
@@ -75,6 +82,10 @@ services:
     networks:
       - application_network
     logging: *docker_json_logging
+    deploy:
+      placement:
+        constraints:
+          - node.labels.workload.application == true
 
 configs:
   backend_application_config:

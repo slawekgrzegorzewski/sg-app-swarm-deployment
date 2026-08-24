@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   fluent-bit:
-    image: public.ecr.aws/aws-observability/aws-for-fluent-bit:3.4.11
+    image: fluent/fluent-bit:5.1.1
     environment:
       AWS_REGION: eu-central-1
       AWS_PROFILE: AmazonCloudWatchAgent
