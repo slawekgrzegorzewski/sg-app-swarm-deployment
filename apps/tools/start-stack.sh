@@ -33,6 +33,27 @@ fi
 
 export CONFIG_VERSION="${release_id:0:12}"
 
+image_tags_file="$cluster_root/image-tags.env"
+if [[ -r "$image_tags_file" ]]; then
+  while IFS='=' read -r key value; do
+    [[ -z "$key" || "$key" == \#* ]] && continue
+    case "$key" in
+      FRONTEND_IMAGE_TAG|BACKEND_IMAGE_TAG|BANKS_IMAGE_TAG)
+        if [[ "$value" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+          export "$key=$value"
+        else
+          echo "Invalid $key in $image_tags_file." >&2
+          exit 1
+        fi
+        ;;
+      *)
+        echo "Unknown setting in $image_tags_file: $key" >&2
+        exit 1
+        ;;
+    esac
+  done < "$image_tags_file"
+fi
+
 if [[ "$stack_name" == core ]]; then
   certificate_environment="$cluster_root/certificates/letsencrypt/current-secrets.env"
   if [[ ! -r "$certificate_environment" ]]; then

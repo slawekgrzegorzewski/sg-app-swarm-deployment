@@ -1,8 +1,23 @@
 version: '3.8'
 
 services:
+  frontend:
+    image: grzegorzewski.pl:5005/react:${FRONTEND_IMAGE_TAG:-latest}
+    networks:
+      - application_network
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.workload.application == true
+      update_config:
+        order: start-first
+        failure_action: rollback
+      rollback_config:
+        order: stop-first
+
   backend:
-    image: grzegorzewski.pl:5005/backend:latest
+    image: grzegorzewski.pl:5005/backend:${BACKEND_IMAGE_TAG:-latest}
     ports:
       - '8080:8080'
     environment:
@@ -41,7 +56,7 @@ services:
           - node.labels.workload.application == true
 
   banks:
-    image: grzegorzewski.pl:5005/banks:latest
+    image: grzegorzewski.pl:5005/banks:${BANKS_IMAGE_TAG:-latest}
     ports:
       - '8081:8080'
     configs:

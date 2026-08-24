@@ -1,0 +1,33 @@
+name: deploy backend image
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Immutable Docker image tag to deploy
+        required: true
+        type: string
+    
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+
+      - name: Deploy the selected backend image
+        id: deploy_backend
+        uses: appleboy/ssh-action@master
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        envs: IMAGE_TAG
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 10000
+          script: |
+            set -Eeuo pipefail
+            /srv/cluster/current/tools/set-image-tag.sh backend "$IMAGE_TAG"
+            /srv/cluster/current/tools/start-stack.sh application

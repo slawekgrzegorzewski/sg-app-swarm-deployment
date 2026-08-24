@@ -42,7 +42,7 @@ jobs:
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
+          key: ${{ secrets.SSH_KEY }}
           port: 10000
           source: cluster-release.tar.gz,cluster-release.sha256,update_cluster.sh
           target: /tmp/cluster-deploy-${{ github.sha }}
@@ -52,7 +52,7 @@ jobs:
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
+          key: ${{ secrets.SSH_KEY }}
           port: 10000
           script: |
             set -eu
