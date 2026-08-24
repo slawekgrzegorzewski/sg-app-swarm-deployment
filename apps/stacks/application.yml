@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   frontend:
-    image: grzegorzewski.pl:5005/react:${FRONTEND_IMAGE_TAG:-latest}
+    image: grzegorzewski.pl:5005/frontend:${FRONTEND_IMAGE_TAG:-latest}
     networks:
       - application_network
     deploy:
