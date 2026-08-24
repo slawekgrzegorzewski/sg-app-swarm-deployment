@@ -16,14 +16,12 @@
 
 ## Następne usprawnienia
 
-1. Przenieść logowanie aplikacji i gatewaya na stdout/stderr oraz zastąpić
-   zbieranie bind-mountowanych plików agentem rozumiejącym metadane kontenerów.
-2. Dodać świadomą migrację danych dla zmiany `postgres_nodes` i
+1. Dodać świadomą migrację danych dla zmiany `postgres_nodes` i
    `registry_nodes`, jeżeli klaster przestanie być środowiskiem odtwarzalnym.
-3. Dodać automatyczny test integracyjny Vagrant: dwa wykonania `apply`,
+2. Dodać automatyczny test integracyjny Vagrant: dwa wykonania `apply`,
    `check`, wdrożenie testowych stacków i kontrola `docker node ls`.
-4. Uruchamiać w CI `ansible-lint`, `yamllint`, `shellcheck` oraz walidację
+3. Uruchamiać w CI `ansible-lint`, `yamllint`, `shellcheck` oraz walidację
    wszystkich plików przez `docker stack config`.
-5. Jeśli harmonogram wybudzania i wyłączania hostów pozostaje potrzebny,
+4. Jeśli harmonogram wybudzania i wyłączania hostów pozostaje potrzebny,
    przenieść go ze starych skryptów operacyjnych do osobnej roli Ansible z
    wartościami MAC, interfejsu i kalendarza zapisanymi w inventory.

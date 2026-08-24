@@ -55,10 +55,6 @@ Jedynym katalogiem głównym zarządzanym dla klastra jest `/srv/cluster`:
 │   └── cloudwatch/
 ├── backups/postgres/
 ├── logs/
-│   ├── gateway/
-│   ├── backend/
-│   ├── banks/
-│   ├── postgres/
 │   └── letsencrypt/
 ├── certificates/letsencrypt/
 │   ├── config/

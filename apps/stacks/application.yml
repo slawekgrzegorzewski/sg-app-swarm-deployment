@@ -1,10 +1,17 @@
 version: '3.8'
 
+x-docker-json-logging: &docker_json_logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '3'
+
 services:
   frontend:
     image: grzegorzewski.pl:5005/frontend:${FRONTEND_IMAGE_TAG:-latest}
     networks:
       - application_network
+    logging: *docker_json_logging
     deploy:
       replicas: 1
       update_config:
@@ -41,16 +48,9 @@ services:
       - aws_pjm_sns_topic_arn
       - random_org_api_key
       - brevo_smtp_password
-    volumes:
-      - type: bind
-        source: /srv/cluster/logs/backend
-        target: /app/logs
     networks:
       - application_network
-    deploy:
-      placement:
-        constraints:
-          - node.labels.workload.application == true
+    logging: *docker_json_logging
 
   banks:
     image: grzegorzewski.pl:5005/banks:${BANKS_IMAGE_TAG:-latest}
@@ -72,16 +72,9 @@ services:
       - banks_db_password
       - brevo_smtp_password
       - notification_email_to
-    volumes:
-      - type: bind
-        source: /srv/cluster/logs/banks
-        target: /app/logs
     networks:
       - application_network
-    deploy:
-      placement:
-        constraints:
-          - node.labels.workload.application == true
+    logging: *docker_json_logging
 
 configs:
   backend_application_config:

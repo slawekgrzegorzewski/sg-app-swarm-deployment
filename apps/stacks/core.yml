@@ -1,5 +1,11 @@
 version: '3.8'
 
+x-docker-json-logging: &docker_json_logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '3'
+
 services:
   swarm-cronjob:
     image: crazymax/swarm-cronjob
@@ -9,6 +15,7 @@ services:
       TZ: Europe/Warsaw
       LOG_LEVEL: info
       LOG_JSON: 'false'
+    logging: *docker_json_logging
     deploy:
       placement:
         constraints:
@@ -39,12 +46,10 @@ services:
         source: /srv/cluster/www/gateway
         target: /usr/share/nginx
         read_only: true
-      - type: bind
-        source: /srv/cluster/logs/gateway
-        target: /var/log/nginx
     networks:
       - cluster_network
       - application_network
+    logging: *docker_json_logging
     deploy:
       placement:
         constraints:
@@ -61,6 +66,7 @@ services:
         target: /var/lib/registry
     networks:
       - cluster_network
+    logging: *docker_json_logging
     deploy:
       replicas: 1
       placement:
@@ -77,6 +83,7 @@ services:
       - tapo_user
       - tapo_password
       - tapo_device_ip
+    logging: *docker_json_logging
     deploy:
       labels:
         - swarm.cronjob.enable=true
@@ -84,9 +91,6 @@ services:
         - swarm.cronjob.skip-running=false
       restart_policy:
         condition: none
-      placement:
-        constraints:
-          - node.labels.workload.application == true
 
 configs:
   gateway_nginx_config:

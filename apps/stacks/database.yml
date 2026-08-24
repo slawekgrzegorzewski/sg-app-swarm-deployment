@@ -1,5 +1,11 @@
 version: '3.8'
 
+x-docker-json-logging: &docker_json_logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '3'
+
 services:
   postgres:
     image: postgres:18.4
@@ -9,20 +15,6 @@ services:
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       TZ: Europe/Warsaw
       PGTZ: Europe/Warsaw
-    command:
-      - postgres
-      - -c
-      - logging_collector=on
-      - -c
-      - log_directory=/var/log/postgresql
-      - -c
-      - log_filename=postgres-%Y-%m-%d_%H%M%S.log
-      - -c
-      - log_rotation_age=1d
-      - -c
-      - log_rotation_size=100MB
-      - -c
-      - log_truncate_on_rotation=on
     secrets:
       - postgres_password
     volumes:
@@ -32,12 +24,10 @@ services:
       - type: bind
         source: /srv/cluster/backups/postgres
         target: /backups
-      - type: bind
-        source: /srv/cluster/logs/postgres
-        target: /var/log/postgresql
     networks:
       - application_network
       - cluster_network
+    logging: *docker_json_logging
     deploy:
       placement:
         constraints:
@@ -67,6 +57,7 @@ services:
     networks:
       - application_network
       - cluster_network
+    logging: *docker_json_logging
     entrypoint:
       - /bin/bash
       - /usr/local/bin/backup-data

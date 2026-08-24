@@ -1,24 +1,21 @@
 version: '3.8'
 
 services:
-  cloudwatch-agent:
-    image: amazon/cloudwatch-agent:latest
+  fluent-bit:
+    image: public.ecr.aws/aws-observability/aws-for-fluent-bit:3.4.11
     environment:
       AWS_REGION: eu-central-1
+      AWS_PROFILE: AmazonCloudWatchAgent
+      HOST_NODE: '{{.Node.Hostname}}'
     secrets:
       - source: cloudwatch_credentials
         target: /root/.aws/credentials
     configs:
-      - source: cloudwatch_config
-        target: /etc/cwagentconfig/config.json
-      - source: cloudwatch_common_config
-        target: /opt/aws/amazon-cloudwatch-agent/etc/common-config.toml
+      - source: fluent_bit_config
+        target: /fluent-bit/etc/fluent-bit.conf
     volumes:
-      - /srv/cluster/logs/backend:/logs/backend:ro
-      - /srv/cluster/logs/banks:/logs/banks:ro
-      - /srv/cluster/logs/gateway:/logs/gateway:ro
-      - /srv/cluster/logs/postgres:/logs/postgres:ro
-      - /srv/cluster/data/cloudwatch:/opt/aws/amazon-cloudwatch-agent/var
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /srv/cluster/data/cloudwatch:/var/fluent-bit/state
     deploy:
       mode: global
       placement:
@@ -32,9 +29,6 @@ secrets:
     external: true
 
 configs:
-  cloudwatch_config:
-    file: ../configs/infrastructure/cloudwatch-config.json
-    name: cloudwatch_config_${CONFIG_VERSION:-0}
-  cloudwatch_common_config:
-    file: ../configs/infrastructure/cloudwatch-common-config.toml
-    name: cloudwatch_common_config_${CONFIG_VERSION:-0}
+  fluent_bit_config:
+    file: ../configs/infrastructure/fluent-bit.conf
+    name: fluent_bit_config_${CONFIG_VERSION:-0}

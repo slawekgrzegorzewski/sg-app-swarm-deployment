@@ -43,19 +43,6 @@ cluster_layout_group_directories:
       owner: "{{ cluster_admin_user }}"
       group: "{{ cluster_admin_user }}"
       mode: '0755'
-    - path: "{{ cluster_root }}/logs/gateway"
-      owner: root
-      group: root
-      mode: '0755'
-  application_nodes:
-    - path: "{{ cluster_root }}/logs/backend"
-      owner: '77777'
-      group: '77777'
-      mode: '0750'
-    - path: "{{ cluster_root }}/logs/banks"
-      owner: '77777'
-      group: '77777'
-      mode: '0750'
   postgres_nodes:
     - path: "{{ cluster_root }}/data/postgres"
       owner: '999'
@@ -70,10 +57,6 @@ cluster_layout_group_directories:
       group: "{{ cluster_admin_user }}"
       # Keep administrative group access on archives created by the container.
       mode: '2770'
-    - path: "{{ cluster_root }}/logs/postgres"
-      owner: '999'
-      group: '999'
-      mode: '0750'
   registry_nodes:
     - path: "{{ cluster_root }}/data/registry"
       owner: "{{ cluster_admin_user }}"
@@ -83,24 +66,6 @@ cluster_layout_group_directories:
     - path: "{{ cluster_root }}/data/cloudwatch"
       owner: root
       group: root
-      mode: '0750'
-    # The CloudWatch agent currently reads file logs. Its global service needs
-    # every bind source to exist on each observability node.
-    - path: "{{ cluster_root }}/logs/gateway"
-      owner: root
-      group: root
-      mode: '0755'
-    - path: "{{ cluster_root }}/logs/backend"
-      owner: '77777'
-      group: '77777'
-      mode: '0750'
-    - path: "{{ cluster_root }}/logs/banks"
-      owner: '77777'
-      group: '77777'
-      mode: '0750'
-    - path: "{{ cluster_root }}/logs/postgres"
-      owner: '999'
-      group: '999'
       mode: '0750'
   letsencrypt_hosts:
     - path: "{{ cluster_root }}/bin"

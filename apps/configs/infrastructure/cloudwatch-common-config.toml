@@ -1,3 +1,0 @@
-[credentials]
-shared_credential_file = "/root/.aws/credentials"
-shared_credential_profile = "AmazonCloudWatchAgent"
