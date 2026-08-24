@@ -1,0 +1,12 @@
+---
+base_host_hostname: "{{ inventory_hostname }}"
+# Leave empty for a generic Debian host.  An inventory may set this when it
+# needs to enforce a particular CPU architecture (for example on real RPis).
+base_host_supported_architectures: []
+base_host_time_sync_retries: 24
+base_host_time_sync_delay: 5
+# The private key is read from the Ansible controller's
+# ansible_home_ssh_dir and installed only on its matching host.
+base_host_ssh_private_key_name: ""
+base_host_ssh_private_key_directory: ansible-home
+base_host_ssh_config_hosts: []

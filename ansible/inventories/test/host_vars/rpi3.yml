@@ -1,0 +1,4 @@
+base_host_hostname: rpi3
+base_host_supported_architectures: [x86_64, amd64]
+ansible_private_key_file: "{{ ansible_home_ssh_dir }}/vagrant_rpi3_ed25519"
+base_host_ssh_private_key_name: vagrant_rpi3_ed25519

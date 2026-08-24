@@ -1,0 +1,14 @@
+---
+docker_swarm_node_labels:
+  - label: workload.postgres
+    inventory_group: postgres_nodes
+  - label: workload.registry
+    inventory_group: registry_nodes
+  - label: workload.gateway
+    inventory_group: gateway_nodes
+  - label: workload.application
+    inventory_group: application_nodes
+  - label: workload.observability
+    inventory_group: observability_nodes
+  - label: workload.letsencrypt
+    inventory_group: letsencrypt_hosts

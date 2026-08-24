@@ -1,0 +1,104 @@
+---
+- name: Validate Docker Swarm secret definitions
+  ansible.builtin.assert:
+    that:
+      - docker_swarm_secrets | length > 0
+      - item.name is match('^[a-zA-Z0-9][a-zA-Z0-9_.-]*$')
+      - item.reference is match('^op://')
+      - item.encoding | default('plain') in ['plain', 'base64']
+    fail_msg: "Invalid Docker Swarm secret definition: {{ item }}"
+  loop: "{{ docker_swarm_secrets }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Verify Docker Swarm manager availability
+  ansible.builtin.command:
+    cmd: docker info --format '{% raw %}{{.Swarm.ControlAvailable}}{% endraw %}'
+  register: docker_swarm_secrets_manager_state
+  changed_when: false
+  check_mode: false
+  failed_when: docker_swarm_secrets_manager_state.stdout | trim != 'true'
+
+- name: Verify that the 1Password CLI is installed on the Ansible controller
+  ansible.builtin.command:
+    argv:
+      - "{{ docker_swarm_secrets_onepassword_cli }}"
+      - --version
+  delegate_to: localhost
+  become: false
+  run_once: true
+  changed_when: false
+  check_mode: false
+
+- name: Create the cluster command directory
+  ansible.builtin.file:
+    path: "{{ docker_swarm_secrets_script | dirname }}"
+    state: directory
+    owner: root
+    group: "{{ cluster_admin_user }}"
+    mode: '0755'
+
+- name: Install the Docker Swarm secrets creation script
+  ansible.builtin.template:
+    src: create-docker-secrets.sh.j2
+    dest: "{{ docker_swarm_secrets_script }}"
+    owner: root
+    group: "{{ cluster_admin_user }}"
+    mode: '0750'
+
+- name: Explain Docker secret changes skipped during check mode
+  ansible.builtin.debug:
+    msg: >-
+      Docker Swarm secret usage is not checked and secrets are not read from
+      1Password or changed in check mode.
+  when: ansible_check_mode
+
+- name: Verify that existing managed secrets are not used by Swarm services
+  ansible.builtin.command:
+    argv: >-
+      {{
+        [docker_swarm_secrets_script, '--preflight'] +
+        (docker_swarm_secrets | map(attribute='name') | list)
+      }}
+  become: true
+  become_user: "{{ cluster_admin_user }}"
+  changed_when: false
+  when: not ansible_check_mode
+
+- name: Read Docker Swarm secrets from 1Password on the Ansible controller
+  ansible.builtin.command:
+    argv:
+      - "{{ docker_swarm_secrets_onepassword_cli }}"
+      - read
+      - "{{ item.reference }}"
+  delegate_to: localhost
+  become: false
+  loop: "{{ docker_swarm_secrets }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: docker_swarm_secrets_from_onepassword
+  changed_when: false
+  no_log: true
+  when: not ansible_check_mode
+
+- name: Create or update Docker Swarm secrets
+  ansible.builtin.command:
+    argv:
+      - "{{ docker_swarm_secrets_script }}"
+      - --apply
+      - "{{ item.item.name }}"
+    stdin: >-
+      {{
+        (item.stdout | b64decode)
+        if item.item.encoding | default('plain') == 'base64'
+        else item.stdout
+      }}
+    stdin_add_newline: false
+  become: true
+  become_user: "{{ cluster_admin_user }}"
+  loop: "{{ docker_swarm_secrets_from_onepassword.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  changed_when: true
+  no_log: true
+  when: not ansible_check_mode

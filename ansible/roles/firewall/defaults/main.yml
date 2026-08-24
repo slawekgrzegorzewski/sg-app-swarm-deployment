@@ -1,0 +1,16 @@
+---
+firewall_cluster_network: 192.168.20.0/24
+firewall_ssh_networks:
+  - "{{ firewall_cluster_network }}"
+firewall_cluster_tcp_ports:
+  - 2377
+  - 5432
+  - 7946
+firewall_cluster_udp_ports:
+  - 7946
+  - 4789
+firewall_external_tcp_ports:
+  - 80
+  - 443
+  - 5005
+  - 5006

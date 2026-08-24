@@ -1,0 +1,58 @@
+{
+  "agent": {
+    "omit_hostname": false,
+    "usage_data": false,
+    "run_as_user": "root"
+  },
+  "logs": {
+    "force_flush_interval": 5,
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/logs/backend/log*.txt",
+            "log_group_name": "application",
+            "log_stream_name": "backend-{local_hostname}",
+            "retention_in_days": -1
+          },
+          {
+            "file_path": "/logs/backend/requests*.txt",
+            "log_group_name": "application-requests",
+            "log_stream_name": "backend-requests-{local_hostname}",
+            "retention_in_days": -1
+          },
+          {
+            "file_path": "/logs/banks/log*.txt",
+            "log_group_name": "banks",
+            "log_stream_name": "banks-{local_hostname}",
+            "retention_in_days": -1
+          },
+          {
+            "file_path": "/logs/banks/requests*.txt",
+            "log_group_name": "banks-requests",
+            "log_stream_name": "go-cardless-requests-{local_hostname}",
+            "retention_in_days": -1
+          },
+          {
+            "file_path": "/logs/gateway/access*.log",
+            "log_group_name": "gateway",
+            "log_stream_name": "access-{local_hostname}",
+            "retention_in_days": -1
+          },
+          {
+            "file_path": "/logs/gateway/error*.log",
+            "log_group_name": "gateway",
+            "log_stream_name": "error-{local_hostname}",
+            "retention_in_days": -1
+          },
+          {
+            "file_path": "/logs/postgres/postgres*.log",
+            "log_group_name": "database",
+            "log_stream_name": "postgres-{local_hostname}",
+            "retention_in_days": -1
+          }
+        ]
+      }
+    }
+  }
+}

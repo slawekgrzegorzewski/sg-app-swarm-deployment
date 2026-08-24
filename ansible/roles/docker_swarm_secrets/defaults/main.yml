@@ -1,0 +1,64 @@
+---
+docker_swarm_secrets_script: "{{ cluster_root }}/bin/create-docker-secrets"
+docker_swarm_secrets_onepassword_cli: >-
+  {{ lookup('ansible.builtin.env', 'ONEPASSWORD_CLI') | default('op', true) }}
+docker_swarm_secrets:
+  - name: registry_htpasswd
+    reference: op://Private/SG App secrets/htpasswd
+  - name: jwt_secret_code
+    reference: op://Private/SG App secrets/jwt_secret_code
+  - name: sendgrid_api_key
+    reference: op://Private/SG App secrets/sendgrid_api_key
+  - name: nordigen_secret_id
+    reference: op://Private/SG App secrets/nordigen_secret_id
+  - name: nordigen_secret_key
+    reference: op://Private/SG App secrets/nordigen_secret_key
+  - name: go_cardless_secret_id
+    reference: op://Private/SG App secrets/go_cardless_secret_id
+  - name: go_cardless_secret_key
+    reference: op://Private/SG App secrets/go_cardless_secret_key
+  - name: postgres_password
+    reference: op://Private/SG App secrets/postgres_password
+  - name: accountant_db_password
+    reference: op://Private/SG App secrets/accountant_db_password
+  - name: banks_db_password
+    reference: op://Private/SG App secrets/banks_db_password
+  - name: smart_home_db_host
+    reference: op://Private/SG App secrets/smart_home_db_host
+  - name: smart_home_db_password
+    reference: op://Private/SG App secrets/smart_home_db_password
+  - name: tapo_user
+    reference: op://Private/SG App secrets/tapo_user
+  - name: tapo_password
+    reference: op://Private/SG App secrets/tapo_password
+  - name: tapo_device_ip
+    reference: op://Private/SG App secrets/tapo_device_ip
+  - name: pjm_downloader_aws_access_key_id
+    reference: op://Private/SG App secrets/pjm_downloader_aws_access_key_id
+  - name: pjm_downloader_aws_secret_access_key
+    reference: op://Private/SG App secrets/pjm_downloader_aws_secret_access_key
+  - name: intellectual_property_s3_aws_access_key_id
+    reference: op://Private/SG App secrets/intellectual_property_s3_aws_access_key_id
+  - name: intellectual_property_s3_aws_secret_access_key
+    reference: op://Private/SG App secrets/intellectual_property_s3_aws_secret_access_key
+  - name: sns-client-access-key-id
+    reference: op://Private/SG App secrets/sns-client-access-key-id
+  - name: sns-client-access-key
+    reference: op://Private/SG App secrets/sns-client-access-key
+  - name: aws_region
+    reference: op://Private/SG App secrets/aws_region
+  - name: aws_pjm_lambda_function
+    reference: op://Private/SG App secrets/aws_pjm_lambda_function
+  - name: aws_pjm_sns_topic_arn
+    reference: op://Private/SG App secrets/aws_pjm_sns_topic_arn
+  - name: aws_banks_sns_topic_arn
+    reference: op://Private/SG App secrets/aws_banks_sns_topic_arn
+  - name: random_org_api_key
+    reference: op://Private/SG App secrets/random_org_api_key
+  - name: notification_email_to
+    reference: op://Private/SG App secrets/notification_email_to
+  - name: brevo_smtp_password
+    reference: op://Private/SG App secrets/brevo_smtp_password
+  - name: cloudwatch_credentials
+    reference: op://Private/SG App secrets/cloudwatch_credentials_base64
+    encoding: base64

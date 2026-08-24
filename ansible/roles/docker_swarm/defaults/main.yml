@@ -1,0 +1,7 @@
+---
+docker_swarm_node_role: worker
+docker_swarm_manager_port: 2377
+docker_swarm_advertise_addr: "{{ ansible_default_ipv4.address }}"
+docker_swarm_overlay_networks:
+  - cluster_network
+  - application_network

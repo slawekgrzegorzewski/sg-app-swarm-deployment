@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily cluster TLS certificate renewal check
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+RandomizedDelaySec=12h
+Persistent=true
+Unit={{ letsencrypt_systemd_service }}
+
+[Install]
+WantedBy=timers.target

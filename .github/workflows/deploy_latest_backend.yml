@@ -24,4 +24,4 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: 10000
           script: |
-            docker service update --force --image ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:latest sg-application_backend
+            docker service update --force --image ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:latest application_backend

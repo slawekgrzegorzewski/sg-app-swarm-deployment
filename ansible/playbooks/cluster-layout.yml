@@ -1,0 +1,13 @@
+---
+- name: Provision cluster directories from workload groups
+  hosts: bootstrap_hosts
+  gather_facts: false
+  roles:
+    - role: cluster_layout
+
+- name: Reconcile Docker Swarm workload labels
+  hosts: swarm_managers
+  gather_facts: false
+  serial: 1
+  roles:
+    - role: docker_swarm_labels

@@ -1,0 +1,55 @@
+---
+- name: Validate cluster directory root
+  ansible.builtin.assert:
+    that:
+      - cluster_root is match('^/srv/[A-Za-z0-9._-]+$')
+      - cluster_root != '/srv'
+    fail_msg: >-
+      cluster_root must be a dedicated absolute directory directly below
+      /srv; refusing to manage {{ cluster_root }}.
+
+- name: Validate stateful and gateway workload placement
+  ansible.builtin.assert:
+    that:
+      - groups.get('postgres_nodes', []) | length == 1
+      - groups.get('registry_nodes', []) | length == 1
+      - groups.get('gateway_nodes', []) | length == 1
+      - groups.get('letsencrypt_hosts', []) | length == 1
+      - (groups.get('letsencrypt_hosts', []) | difference(groups.get('gateway_nodes', []))) | length == 0
+      - (groups.get('letsencrypt_hosts', []) | difference(groups.get('swarm_managers', []))) | length == 0
+    fail_msg: >-
+      Configure exactly one postgres, registry, gateway, and Let's Encrypt
+      host. The gateway and Let's Encrypt groups must contain the same Swarm
+      manager because their bind-mounted HTTP-01 files are node-local.
+  run_once: true
+
+- name: Validate that workload hosts are bootstrapped
+  ansible.builtin.assert:
+    that:
+      - >-
+        (groups.get(item, []) | difference(groups.get('bootstrap_hosts', [])))
+        | length == 0
+    fail_msg: >-
+      Every host in {{ item }} must also belong to bootstrap_hosts so its
+      workload directories can be provisioned.
+  loop: "{{ cluster_layout_group_directories.keys() | list }}"
+  run_once: true
+
+- name: Create common cluster directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop: "{{ cluster_layout_common_directories }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Create workload-specific cluster directories
+  ansible.builtin.include_tasks: create-group-directories.yml
+  loop: "{{ cluster_layout_group_directories | dict2items }}"
+  loop_control:
+    loop_var: cluster_layout_group
+    label: "{{ cluster_layout_group.key }}"
+  when: inventory_hostname in groups.get(cluster_layout_group.key, [])

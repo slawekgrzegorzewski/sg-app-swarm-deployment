@@ -1,0 +1,125 @@
+---
+- name: Validate Docker Swarm inventory
+  ansible.builtin.assert:
+    that:
+      - groups['swarm_managers'] | length == 1
+      - docker_swarm_node_role in ['manager', 'worker']
+    fail_msg: >-
+      The initial Swarm implementation requires exactly one host in
+      swarm_managers and a node role of manager or worker.
+
+- name: Resolve the local Swarm advertise address
+  ansible.builtin.set_fact:
+    docker_swarm_effective_advertise_addr: "{{ docker_swarm_advertise_addr }}"
+
+- name: Check Docker availability
+  ansible.builtin.command:
+    cmd: docker version --format '{% raw %}{{.Server.Version}}{% endraw %}'
+  register: docker_swarm_docker_version
+  changed_when: false
+
+- name: Read local Swarm state
+  ansible.builtin.command:
+    cmd: docker info --format '{% raw %}{{.Swarm.LocalNodeState}}{% endraw %}'
+  register: docker_swarm_local_state
+  changed_when: false
+
+- name: Initialize the Swarm manager
+  ansible.builtin.command:
+    cmd: >-
+      docker swarm init
+      --advertise-addr {{ docker_swarm_effective_advertise_addr }}
+      --listen-addr 0.0.0.0:{{ docker_swarm_manager_port }}
+  when:
+    - docker_swarm_node_role == 'manager'
+    - docker_swarm_local_state.stdout | trim != 'active'
+  register: docker_swarm_init
+  changed_when: true
+
+- name: Read the worker join token from the manager
+  ansible.builtin.command:
+    cmd: docker swarm join-token -q worker
+  when: docker_swarm_node_role == 'manager'
+  register: docker_swarm_worker_token
+  changed_when: false
+  no_log: true
+
+- name: Join the Swarm as a worker
+  ansible.builtin.shell:
+    cmd: >-
+      docker swarm join
+      --token "$DOCKER_SWARM_WORKER_TOKEN"
+      {{ hostvars[groups['swarm_managers'][0]].docker_swarm_effective_advertise_addr }}:{{ docker_swarm_manager_port }}
+      --advertise-addr {{ docker_swarm_effective_advertise_addr }}
+    executable: /bin/bash
+  environment:
+    DOCKER_SWARM_WORKER_TOKEN: >-
+      {{ hostvars[groups['swarm_managers'][0]].docker_swarm_worker_token.stdout | trim }}
+  when:
+    - not ansible_check_mode
+    - docker_swarm_node_role == 'worker'
+    - docker_swarm_local_state.stdout | trim != 'active'
+  register: docker_swarm_join
+  changed_when: true
+
+- name: Verify that the node is active in Swarm
+  ansible.builtin.command:
+    cmd: docker info --format '{% raw %}{{.Swarm.LocalNodeState}}{% endraw %}'
+  register: docker_swarm_final_state
+  changed_when: false
+  failed_when: docker_swarm_final_state.stdout | trim != 'active'
+  when: not ansible_check_mode
+
+- name: Validate managed Swarm overlay network names
+  ansible.builtin.assert:
+    that:
+      - item is match('^[a-zA-Z0-9][a-zA-Z0-9_.-]*$')
+    fail_msg: >-
+      Swarm overlay network names must contain only letters, numbers, dots,
+      underscores, and hyphens: {{ item }}.
+  loop: "{{ docker_swarm_overlay_networks }}"
+  when: docker_swarm_node_role == 'manager'
+
+- name: Read managed Swarm overlay networks
+  ansible.builtin.command:
+    cmd: >-
+      docker network inspect
+      --format '{% raw %}{{.Driver}} {{.Scope}}{% endraw %}'
+      {{ item }}
+  loop: "{{ docker_swarm_overlay_networks }}"
+  register: docker_swarm_overlay_network_state
+  changed_when: false
+  failed_when: false
+  when:
+    - not ansible_check_mode
+    - docker_swarm_node_role == 'manager'
+
+- name: Verify existing managed Swarm overlay networks
+  ansible.builtin.assert:
+    that:
+      - item.stdout | trim == 'overlay swarm'
+    fail_msg: >-
+      Docker network {{ item.item }} already exists but is not a
+      swarm-scoped overlay network.
+  loop: "{{ docker_swarm_overlay_network_state.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when:
+    - not ansible_check_mode
+    - docker_swarm_node_role == 'manager'
+    - item.rc == 0
+
+- name: Create missing Swarm overlay networks
+  ansible.builtin.command:
+    cmd: >-
+      docker network create
+      --driver overlay
+      --scope swarm
+      {{ item.item }}
+  loop: "{{ docker_swarm_overlay_network_state.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when:
+    - not ansible_check_mode
+    - docker_swarm_node_role == 'manager'
+    - item.rc != 0

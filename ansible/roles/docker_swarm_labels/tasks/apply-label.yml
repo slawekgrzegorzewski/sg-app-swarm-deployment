@@ -1,0 +1,63 @@
+---
+- name: Read current labels for {{ docker_swarm_label_spec.label }} nodes
+  ansible.builtin.command:
+    cmd: >-
+      docker node inspect
+      --format '{% raw %}{{json .Spec.Labels}}{% endraw %}'
+      {{ hostvars[item].base_host_hostname }}
+  loop: "{{ groups.get(docker_swarm_label_spec.inventory_group, []) }}"
+  loop_control:
+    label: "{{ docker_swarm_label_spec.label }} -> {{ item }}"
+  register: docker_swarm_label_state
+  changed_when: false
+
+- name: Read all Swarm nodes for {{ docker_swarm_label_spec.label }} reconciliation
+  ansible.builtin.command:
+    cmd: docker node ls --format '{% raw %}{{.Hostname}}{% endraw %}'
+  register: docker_swarm_all_nodes
+  changed_when: false
+
+- name: Read current labels on all Swarm nodes
+  ansible.builtin.command:
+    cmd: >-
+      docker node inspect
+      --format '{% raw %}{{json .Spec.Labels}}{% endraw %}'
+      {{ item }}
+  loop: "{{ docker_swarm_all_nodes.stdout_lines }}"
+  loop_control:
+    label: "{{ docker_swarm_label_spec.label }} -> {{ item }}"
+  register: docker_swarm_all_label_state
+  changed_when: false
+
+- name: Apply {{ docker_swarm_label_spec.label }} label
+  ansible.builtin.command:
+    cmd: >-
+      docker node update
+      --label-add {{ docker_swarm_label_spec.label }}=true
+      {{ hostvars[item.item].base_host_hostname }}
+  loop: "{{ docker_swarm_label_state.results }}"
+  loop_control:
+    label: "{{ docker_swarm_label_spec.label }} -> {{ item.item }}"
+  when:
+    - not ansible_check_mode
+    - (item.stdout | from_json | default({}, true)).get(docker_swarm_label_spec.label) != 'true'
+
+- name: Remove stale {{ docker_swarm_label_spec.label }} label
+  ansible.builtin.command:
+    cmd: >-
+      docker node update
+      --label-rm {{ docker_swarm_label_spec.label }}
+      {{ item.item }}
+  loop: "{{ docker_swarm_all_label_state.results }}"
+  loop_control:
+    label: "{{ docker_swarm_label_spec.label }} -> {{ item.item }}"
+  vars:
+    docker_swarm_label_nodes: >-
+      {{ groups.get(docker_swarm_label_spec.inventory_group, [])
+         | map('extract', hostvars)
+         | map(attribute='base_host_hostname')
+         | list }}
+  when:
+    - not ansible_check_mode
+    - item.item not in docker_swarm_label_nodes
+    - (item.stdout | from_json | default({}, true)).get(docker_swarm_label_spec.label) == 'true'

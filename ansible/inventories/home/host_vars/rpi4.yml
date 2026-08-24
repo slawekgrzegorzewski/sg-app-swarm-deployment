@@ -1,0 +1,4 @@
+base_host_hostname: rpi4
+base_host_supported_architectures: [aarch64, arm64]
+ansible_private_key_file: "{{ ansible_home_ssh_dir }}/rpi4_ed25519"
+base_host_ssh_private_key_name: rpi4_ed25519

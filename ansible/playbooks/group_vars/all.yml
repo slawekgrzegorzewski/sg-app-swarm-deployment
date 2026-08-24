@@ -1,0 +1,12 @@
+cluster_admin_user: slawek
+cluster_timezone: Europe/Warsaw
+cluster_root: /srv/cluster
+
+base_host_packages:
+  - ca-certificates
+  - curl
+  - dos2unix
+  - git
+  - gnupg
+  - jq
+  - unzip

@@ -1,0 +1,16 @@
+---
+docker_engine_packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+
+docker_engine_repository_distribution_map:
+  Debian: debian
+  Ubuntu: ubuntu
+
+docker_engine_repository_architecture_map:
+  x86_64: amd64
+  aarch64: arm64
+  armv7l: armhf

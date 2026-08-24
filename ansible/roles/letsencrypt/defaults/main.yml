@@ -1,0 +1,21 @@
+---
+letsencrypt_webroot: "{{ cluster_root }}/www/gateway/letsencrypt"
+letsencrypt_email: slawek@grzegorzewski.pl
+letsencrypt_cert_name: grzegorzewski.pl
+letsencrypt_domains:
+  - grzegorzewski.pl
+  - be.grzegorzewski.pl
+  - mail.grzegorzewski.pl
+
+letsencrypt_config_directory: "{{ cluster_root }}/certificates/letsencrypt/config"
+letsencrypt_work_directory: "{{ cluster_root }}/certificates/letsencrypt/work"
+letsencrypt_logs_directory: "{{ cluster_root }}/logs/letsencrypt"
+letsencrypt_live_directory: "{{ letsencrypt_config_directory }}/live/{{ letsencrypt_cert_name }}"
+letsencrypt_current_secrets_environment: "{{ cluster_root }}/certificates/letsencrypt/current-secrets.env"
+letsencrypt_scripts_directory: "{{ cluster_root }}/bin"
+letsencrypt_renew_script: "{{ letsencrypt_scripts_directory }}/renew-certificates"
+letsencrypt_gateway_service: core_gateway
+letsencrypt_certificate_secret_prefix: gateway_tls_certificate
+letsencrypt_private_key_secret_prefix: gateway_tls_private_key
+letsencrypt_systemd_service: cluster-certificate-renewal.service
+letsencrypt_systemd_timer: cluster-certificate-renewal.timer
