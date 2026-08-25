@@ -2,6 +2,8 @@
 docker_swarm_secrets_script: "{{ cluster_root }}/bin/create-docker-secrets"
 docker_swarm_secrets_onepassword_cli: >-
   {{ lookup('ansible.builtin.env', 'ONEPASSWORD_CLI') | default('op', true) }}
+docker_swarm_secrets_onepassword_account: >-
+  {{ lookup('ansible.builtin.env', 'ONEPASSWORD_ACCOUNT') | default('', true) }}
 docker_swarm_secrets:
   - name: registry_htpasswd
     reference: op://Private/SG App secrets/htpasswd
@@ -61,3 +63,5 @@ docker_swarm_secrets:
     reference: op://Private/SG App secrets/brevo_smtp_password
   - name: grafana_admin_password
     reference: op://Private/SG App secrets/grafana_admin_password
+  - name: portainer_admin_password
+    reference: op://Private/SG App secrets/portainer_admin_password

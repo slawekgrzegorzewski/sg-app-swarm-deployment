@@ -75,10 +75,16 @@
 
 - name: Read Docker Swarm secrets from 1Password on the Ansible controller
   ansible.builtin.command:
-    argv:
-      - "{{ docker_swarm_secrets_onepassword_cli }}"
-      - read
-      - "{{ item.reference }}"
+    argv: >-
+      {{
+        [docker_swarm_secrets_onepassword_cli, 'read']
+        + (
+          ['--account', docker_swarm_secrets_onepassword_account]
+          if docker_swarm_secrets_onepassword_account | length > 0
+          else []
+        )
+        + [item.reference]
+      }}
   delegate_to: localhost
   become: false
   loop: >-

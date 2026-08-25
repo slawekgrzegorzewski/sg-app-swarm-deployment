@@ -22,6 +22,13 @@ Pełne przygotowanie nowego klastra:
 ./06-docker-secrets.sh home apply
 ```
 
+Jeżeli 1Password CLI ma dostęp do więcej niż jednego konta, wybierz konto
+jawnie przez `ONEPASSWORD_ACCOUNT`, np.:
+
+```bash
+ONEPASSWORD_ACCOUNT=twoj-account ./06-docker-secrets.sh home apply
+```
+
 Po kroku `05` i przed pierwszym wdrożeniem stacka `core` należy jednorazowo
 uzyskać rzeczywisty certyfikat na managerze poleceniem pokazanym w sekcji
 „Let's Encrypt i rotacja certyfikatów”. Dzięki temu powstaną pierwsze sekrety
@@ -118,8 +125,9 @@ globalne node-exporter i cAdvisor. Docker przekazuje logi usług przez swój
 wbudowany driver `syslog` do Alloy na managerze; na Raspberry Pi nie działa
 żaden collector Fluent Bit.
 
-Przed pierwszym wdrożeniem utwórz w 1Password pole
-`op://Private/SG App secrets/grafana_admin_password`, a następnie wykonaj:
+Przed pierwszym wdrożeniem utwórz w 1Password pola
+`op://Private/SG App secrets/grafana_admin_password` i
+`op://Private/SG App secrets/portainer_admin_password`, a następnie wykonaj:
 
 ```bash
 ./02-docker-swarm.sh home apply
@@ -129,9 +137,10 @@ Przed pierwszym wdrożeniem utwórz w 1Password pole
 ```
 
 Pierwszy krok tworzy `observability_network` oraz zapisuje adres managera jako
-docelowy endpoint syslog. Grafana jest dostępna przez gateway pod
-`https://grafana.grzegorzewski.pl`; port 1514/TCP jest przeznaczony wyłącznie
-dla nodów klastra. Loki, Prometheus i Grafana nie publikują portów poza Swarm.
+docelowy endpoint syslog. Grafana i Portainer są dostępne przez gateway pod
+`https://grafana.grzegorzewski.pl` i `https://portainer.grzegorzewski.pl`;
+port 1514/TCP jest przeznaczony wyłącznie dla nodów klastra. Loki, Prometheus,
+Grafana i Portainer nie publikują portów poza Swarm.
 
 ### Backup Grafany
 

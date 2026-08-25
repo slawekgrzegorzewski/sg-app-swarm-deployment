@@ -6,6 +6,7 @@ letsencrypt_domains:
   - grzegorzewski.pl
   - be.grzegorzewski.pl
   - grafana.grzegorzewski.pl
+  - portainer.grzegorzewski.pl
   - mail.grzegorzewski.pl
   - public.registry.grzegorzewski.pl
   - private.registry.grzegorzewski.pl

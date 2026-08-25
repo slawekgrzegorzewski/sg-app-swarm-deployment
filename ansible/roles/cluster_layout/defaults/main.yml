@@ -79,6 +79,10 @@ cluster_layout_group_directories:
       owner: '472'
       group: '472'
       mode: '0750'
+    - path: "{{ cluster_root }}/data/portainer"
+      owner: root
+      group: root
+      mode: '0700'
   letsencrypt_hosts:
     - path: "{{ cluster_root }}/bin"
       owner: root
