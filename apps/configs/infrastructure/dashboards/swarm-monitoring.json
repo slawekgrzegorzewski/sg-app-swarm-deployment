@@ -48,7 +48,7 @@
                       "kind": "DataQuery",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "(\n  100 * (\n    1 - avg by (instance) (\n      rate(node_cpu_seconds_total{\n        job=\"node\",\n        mode=\"idle\"\n      }[5m])\n    )\n  )\n)\n* on (instance) group_left (nodename)\n  node_uname_info{job=\"node\"}",
+                        "expr": "(\n  100 * (\n    1 - avg by (instance) (\n      rate(node_cpu_seconds_total{\n        job=\"node\",\n        mode=\"idle\"\n      }[5m])\n    )\n  )\n)\n* on (instance) group_left (nodename)\n  node_uname_info{\n    job=\"node\",\n    nodename=~\"${hostname:regex}\"\n  }",
                         "legendFormat": "{{nodename}}",
                         "range": true
                       },
@@ -172,7 +172,7 @@
                       "kind": "DataQuery",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "(\n  100 * (\n    1 - (\n      node_memory_MemAvailable_bytes{job=\"node\"}\n      / on (instance)\n      node_memory_MemTotal_bytes{job=\"node\"}\n    )\n  )\n)\n* on (instance) group_left (nodename)\n  node_uname_info{job=\"node\"}",
+                        "expr": "(\n  100 * (\n    1 - (\n      node_memory_MemAvailable_bytes{job=\"node\"}\n      / on (instance)\n      node_memory_MemTotal_bytes{job=\"node\"}\n    )\n  )\n)\n* on (instance) group_left (nodename)\n  node_uname_info{\n    job=\"node\",\n    nodename=~\"${hostname:regex}\"\n  }",
                         "legendFormat": "{{nodename}}",
                         "range": true
                       },
@@ -296,7 +296,7 @@
                       "kind": "DataQuery",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "(\n  (\n    node_memory_MemTotal_bytes{job=\"node\"}\n    -\n    node_memory_MemAvailable_bytes{job=\"node\"}\n  )\n)\n* on (instance) group_left (nodename)\n  node_uname_info{job=\"node\"}",
+                        "expr": "(\n  (\n    node_memory_MemTotal_bytes{job=\"node\"}\n    -\n    node_memory_MemAvailable_bytes{job=\"node\"}\n  )\n)\n* on (instance) group_left (nodename)\n  node_uname_info{\n    job=\"node\",\n    nodename=~\"${hostname:regex}\"\n  }",
                         "legendFormat": "{{nodename}}",
                         "range": true
                       },
@@ -478,6 +478,52 @@
       "to": "now"
     },
     "title": "Swarm - Monitoring",
-    "variables": []
+    "variables": [
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "allValue": ".*",
+          "allowCustomValue": true,
+          "current": {
+            "text": [
+              "PC2",
+              "rpi3",
+              "rpi4",
+              "rpi5"
+            ],
+            "value": [
+              "PC2",
+              "rpi3",
+              "rpi4",
+              "rpi5"
+            ]
+          },
+          "definition": "label_values(node_uname_info,nodename)",
+          "hide": "dontHide",
+          "includeAll": true,
+          "multi": true,
+          "name": "hostname",
+          "options": [],
+          "query": {
+            "datasource": {
+              "name": "PBFA97CFB590B2093"
+            },
+            "group": "prometheus",
+            "kind": "DataQuery",
+            "spec": {
+              "qryType": 1,
+              "query": "label_values(node_uname_info,nodename)",
+              "refId": "PrometheusVariableQueryEditor-VariableQuery"
+            },
+            "version": "v0"
+          },
+          "refresh": "onDashboardLoad",
+          "regex": "/^(rpi3|rpi4|rpi5|PC2)$/",
+          "regexApplyTo": "value",
+          "skipUrlSync": false,
+          "sort": "disabled"
+        }
+      }
+    ]
   }
 }

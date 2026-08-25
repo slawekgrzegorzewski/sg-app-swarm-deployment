@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+readonly GRAFANA_DATABASE='/srv/cluster/data/grafana/grafana.db'
+readonly BACKUP_DIRECTORY='/srv/cluster/backups/grafana'
+
+if (( $# != 0 )); then
+  echo "Usage: $(basename "$0")" >&2
+  exit 2
+fi
+
+if (( EUID != 0 )); then
+  echo "Run this script as root, for example: sudo $0" >&2
+  exit 1
+fi
+
+command -v python3 >/dev/null 2>&1 || {
+  echo "python3 is required to create a consistent SQLite backup." >&2
+  exit 127
+}
+
+[[ -f "$GRAFANA_DATABASE" ]] || {
+  echo "Grafana database not found: $GRAFANA_DATABASE" >&2
+  exit 1
+}
+
+[[ -d "$BACKUP_DIRECTORY" ]] || {
+  echo "Grafana backup directory not found: $BACKUP_DIRECTORY" >&2
+  echo "Provision it with Ansible before running this script." >&2
+  exit 1
+}
+
+timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+destination="$BACKUP_DIRECTORY/grafana-$timestamp.db"
+[[ ! -e "$destination" ]] || {
+  echo "Refusing to overwrite an existing backup: $destination" >&2
+  exit 1
+}
+
+temporary_destination="$(mktemp "$BACKUP_DIRECTORY/.grafana-$timestamp.XXXXXX.tmp")"
+cleanup() {
+  rm -f -- "$temporary_destination"
+}
+trap cleanup EXIT
+
+python3 - "$GRAFANA_DATABASE" "$temporary_destination" <<'PY'
+import sqlite3
+import sys
+import urllib.parse
+
+source, destination = sys.argv[1:3]
+source_uri = f"file:{urllib.parse.quote(source)}?mode=ro"
+
+with sqlite3.connect(source_uri, uri=True) as source_connection:
+    with sqlite3.connect(destination) as backup_connection:
+        source_connection.backup(backup_connection)
+
+with sqlite3.connect(destination) as verification_connection:
+    integrity_check = verification_connection.execute(
+        "PRAGMA integrity_check"
+    ).fetchone()[0]
+if integrity_check != "ok":
+    raise RuntimeError(f"SQLite integrity check failed: {integrity_check}")
+PY
+
+chmod 0640 "$temporary_destination"
+mv -- "$temporary_destination" "$destination"
+trap - EXIT
+
+printf 'Created verified Grafana backup: %s\n' "$destination"

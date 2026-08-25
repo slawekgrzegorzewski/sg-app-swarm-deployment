@@ -133,6 +133,25 @@ docelowy endpoint syslog. Grafana jest dostępna przez gateway pod
 `https://grafana.grzegorzewski.pl`; port 1514/TCP jest przeznaczony wyłącznie
 dla nodów klastra. Loki, Prometheus i Grafana nie publikują portów poza Swarm.
 
+### Backup Grafany
+
+Krok `01-bootstrap.sh` instaluje na hostach z grupy `swarm_managers` lokalny,
+wykonywalny skrypt `/srv/cluster/bin/backup_grafana.sh` oraz przygotowuje katalog
+`/srv/cluster/backups/grafana`. Skrypt jest instalowany wyłącznie na managerach;
+sam backup wykonuje się potem bezpośrednio na managerze. Wykorzystuje API
+backupu SQLite przez Python, dzięki czemu nie kopiuje wprost aktywnego pliku
+`grafana.db` i nie wymaga zatrzymania Grafany. Backup jest zapisywany jako
+`/srv/cluster/backups/grafana/grafana-<timestamp>.db`. Bootstrap instaluje i
+włącza usługę `cron` na managerze oraz dodaje wpis uruchamiający backup
+codziennie o 02:30 czasu lokalnego hosta (`Europe/Warsaw`).
+
+Po wykonaniu bootstrapu na managerze uruchom:
+
+```bash
+sudo /srv/cluster/bin/backup_grafana.sh
+ls -lh /srv/cluster/backups/grafana/
+```
+
 Jawnie destrukcyjny reset testowego Swarma:
 
 ```bash

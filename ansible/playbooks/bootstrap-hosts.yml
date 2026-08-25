@@ -6,3 +6,43 @@
     - role: base_host
     - role: docker_engine
     - role: cluster_layout
+
+- name: Install manager-only Grafana backup script
+  hosts: swarm_managers
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install cron scheduler
+      ansible.builtin.apt:
+        name: cron
+        state: present
+
+    - name: Enable cron scheduler
+      ansible.builtin.systemd_service:
+        name: cron
+        enabled: true
+        state: started
+
+    - name: Create Grafana backup directory
+      ansible.builtin.file:
+        path: "{{ cluster_root }}/backups/grafana"
+        state: directory
+        owner: root
+        group: root
+        mode: '0750'
+
+    - name: Install the local Grafana backup script
+      ansible.builtin.template:
+        src: backup_grafana.sh.j2
+        dest: "{{ cluster_root }}/bin/backup_grafana.sh"
+        owner: root
+        group: root
+        mode: '0750'
+
+    - name: Schedule nightly Grafana backup
+      ansible.builtin.cron:
+        name: Backup Grafana SQLite database
+        user: root
+        minute: '30'
+        hour: '2'
+        job: "{{ cluster_root }}/bin/backup_grafana.sh"
