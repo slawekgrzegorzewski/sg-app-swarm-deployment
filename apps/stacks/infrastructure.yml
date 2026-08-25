@@ -94,6 +94,18 @@ services:
         uid: '472'
         gid: '472'
         mode: 0444
+
+      - source: grafana_dashboards
+        target: /etc/grafana/provisioning/dashboards/dashboards.yml
+        uid: '472'
+        gid: '472'
+        mode: 0444
+
+      - source: grafana_dashboard_swarm_monitoring
+        target: /etc/grafana/provisioning/dashboards/files/swarm-monitoring.json
+        uid: '472'
+        gid: '472'
+        mode: 0444
     volumes:
       - /srv/cluster/data/grafana:/var/lib/grafana
     networks:
@@ -157,6 +169,12 @@ configs:
   grafana_datasources:
     file: ../configs/infrastructure/grafana-datasources.yml
     name: grafana_datasources_${CONFIG_VERSION:-0}
+  grafana_dashboards:
+    file: ../configs/infrastructure/grafana-dashboards.yml
+    name: grafana_dashboards_${CONFIG_VERSION:-0}
+  grafana_dashboard_swarm_monitoring:
+    file: ../configs/infrastructure/dashboards/swarm-monitoring.json
+    name: grafana_dashboard_swarm_monitoring_${CONFIG_VERSION:-0}
 
 secrets:
   grafana_admin_password:

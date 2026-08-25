@@ -107,7 +107,7 @@ while IFS= read -r config_name; do
     postgres_backup_script_*|postgres_restore_script_*|\
     backend_application_*|banks_application_*|backend_logback_*|banks_logback_*|\
     fluent_bit_config_*|cloudwatch_config_*|cloudwatch_common_config_*|\
-    alloy_config_*|loki_config_*|prometheus_config_*|grafana_datasources_*)
+    alloy_config_*|loki_config_*|prometheus_config_*|grafana_datasources_*|grafana_dashboards_*|grafana_dashboard_swarm_monitoring_*)
       config_stack="$(docker config inspect "$config_name" \
         --format '{{ index .Spec.Labels "com.docker.stack.namespace" }}' 2>/dev/null || true)"
       if [[ "$config_stack" =~ ^(core|database|application|infrastructure)$ && \
