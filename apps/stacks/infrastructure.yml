@@ -109,6 +109,7 @@ services:
 
   node-exporter:
     image: quay.io/prometheus/node-exporter:v1.9.1
+    hostname: "{{.Node.Hostname}}"
     command:
       - --path.rootfs=/host
     volumes:
