@@ -48,7 +48,7 @@
                       "kind": "DataQuery",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "(\n  100 * (\n    1 - avg by (instance) (\n      rate(node_cpu_seconds_total{\n        job=\"node\",\n        mode=\"idle\"\n      }[5m])\n    )\n  )\n)\n* on (instance) group_left (nodename)\n  node_uname_info{\n    job=\"node\",\n    nodename=~\"${hostname:regex}\"\n  }",
+                        "expr": "max by (nodename) (\n  (\n  100 * (\n    1 - avg by (instance) (\n      rate(node_cpu_seconds_total{\n        job=\"node\",\n        mode=\"idle\"\n      }[5m])\n    )\n  )\n)\n* on (instance) group_left (nodename)\n  node_uname_info{\n    job=\"node\",\n    nodename=~\"${hostname:regex}\"\n  }\n  )",
                         "legendFormat": "{{nodename}}",
                         "range": true
                       },
@@ -172,7 +172,7 @@
                       "kind": "DataQuery",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "(\n  100 * (\n    1 - (\n      node_memory_MemAvailable_bytes{job=\"node\"}\n      / on (instance)\n      node_memory_MemTotal_bytes{job=\"node\"}\n    )\n  )\n)\n* on (instance) group_left (nodename)\n  node_uname_info{\n    job=\"node\",\n    nodename=~\"${hostname:regex}\"\n  }",
+                        "expr": "max by (nodename) (\n  (\n  100 * (\n    1 - (\n      node_memory_MemAvailable_bytes{job=\"node\"}\n      / on (instance)\n      node_memory_MemTotal_bytes{job=\"node\"}\n    )\n  )\n)\n* on (instance) group_left (nodename)\n  node_uname_info{\n    job=\"node\",\n    nodename=~\"${hostname:regex}\"\n  }\n  )",
                         "legendFormat": "{{nodename}}",
                         "range": true
                       },
@@ -296,7 +296,7 @@
                       "kind": "DataQuery",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "(\n  (\n    node_memory_MemTotal_bytes{job=\"node\"}\n    -\n    node_memory_MemAvailable_bytes{job=\"node\"}\n  )\n)\n* on (instance) group_left (nodename)\n  node_uname_info{\n    job=\"node\",\n    nodename=~\"${hostname:regex}\"\n  }",
+                        "expr": "max by (nodename) (\n  (\n  (\n    node_memory_MemTotal_bytes{job=\"node\"}\n    -\n    node_memory_MemAvailable_bytes{job=\"node\"}\n  )\n)\n* on (instance) group_left (nodename)\n  node_uname_info{\n    job=\"node\",\n    nodename=~\"${hostname:regex}\"\n  }\n  )",
                         "legendFormat": "{{nodename}}",
                         "range": true
                       },
