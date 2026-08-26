@@ -38,6 +38,10 @@ cluster_layout_group_directories:
       owner: root
       group: "{{ cluster_admin_user }}"
       mode: '0755'
+    - path: "{{ cluster_root }}/backups/postgres"
+      owner: "{{ cluster_admin_user }}"
+      group: "{{ cluster_admin_user }}"
+      mode: '0750'
   gateway_nodes:
     - path: "{{ cluster_root }}/www/gateway"
       owner: "{{ cluster_admin_user }}"

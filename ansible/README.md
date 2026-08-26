@@ -161,6 +161,24 @@ sudo /srv/cluster/bin/backup_grafana.sh
 ls -lh /srv/cluster/backups/grafana/
 ```
 
+### Przenoszenie backupów PostgreSQL
+
+Backup PostgreSQL powstaje co godzinę na nodzie z grupy `postgres_nodes`.
+Bootstrap instaluje na managerze skrypt
+`/srv/cluster/bin/transfer_postgres_backups.sh` i wpis crona uruchamiany o
+`HH:30`. Skrypt pobiera wszystkie dostępne archiwa jednym wywołaniem `rsync`
+do katalogu tymczasowego, porównuje SHA-256 ze źródłem, atomowo publikuje je w
+`/srv/cluster/backups/postgres`, a następnie ponownie potwierdza sumę kontrolną
+na nodzie bazy przed usunięciem tamtejszych plików. Po przerwanym wykonaniu
+istniejące, zgodne archiwum na managerze jest potwierdzane i źródło zostaje
+bezpiecznie uprzątnięte przy następnym przebiegu.
+
+Ręczne uruchomienie na managerze:
+
+```bash
+sudo -u slawek /srv/cluster/bin/transfer_postgres_backups.sh
+```
+
 Jawnie destrukcyjny reset testowego Swarma:
 
 ```bash
