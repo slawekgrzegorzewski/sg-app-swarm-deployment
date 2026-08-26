@@ -1,0 +1,16 @@
+services:
+  backup-app:
+    build: .
+    container_name: backup-app
+    environment:
+      REMOTE_HOST: ${REMOTE_HOST:-192.168.20.2}
+      REMOTE_USER: ${REMOTE_USER:-slawek}
+      REMOTE_PORT: ${REMOTE_PORT:-22}
+      REMOTE_BACKUP_ROOT: ${REMOTE_BACKUP_ROOT:-/srv/cluster/backups}
+      SYNC_S3: ${SYNC_S3:-true}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-intellectualpropertytask}
+    restart: "no"
+    volumes:
+      - ${DEVELOPMENT_DIRECTORY:?Set DEVELOPMENT_DIRECTORY to the local backup directory}/.aws:/root/.aws:ro
+      - ${DEVELOPMENT_DIRECTORY:?Set DEVELOPMENT_DIRECTORY to the local backup directory}/.ssh:/root/.ssh:ro
+      - ${DEVELOPMENT_DIRECTORY:?Set DEVELOPMENT_DIRECTORY to the local backup directory}:/development

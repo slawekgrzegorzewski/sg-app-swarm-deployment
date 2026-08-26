@@ -1,2 +1,0 @@
-"C:\Users\slawe\.jdks\azul-19.0.1\bin\keytool.exe" -genkeypair -alias localhost -keyalg RSA -keysize 2048 -storetype PKCS12 -keystore keystore.p12 -validity 3650 -storepass slawek
-"C:\Users\slawe\.jdks\azul-19.0.1\bin\keytool.exe" -list -v -storetype pkcs12 -keystore keystore.p12
