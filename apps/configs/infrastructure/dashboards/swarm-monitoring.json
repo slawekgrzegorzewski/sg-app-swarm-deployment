@@ -302,7 +302,7 @@
                       },
                       "version": "v0"
                     },
-                    "refId": "Wykorzystanie RAM w MiB - node'y swarma"
+                    "refId": "Wykorzystanie RAM [Bytes]"
                   }
                 }
               ],
@@ -423,7 +423,7 @@
                       },
                       "version": "v0"
                     },
-                    "refId": "Zajęcie dysku [MiB]"
+                    "refId": "Zajęcie dysku [Bytes]"
                   }
                 }
               ],
@@ -544,7 +544,7 @@
                       },
                       "version": "v0"
                     },
-                    "refId": "Zajęcie dysku [MiB]"
+                    "refId": "Zajęcie dysku [%]"
                   }
                 }
               ],
