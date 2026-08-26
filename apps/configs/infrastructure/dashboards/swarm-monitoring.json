@@ -48,7 +48,7 @@
                       "kind": "DataQuery",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "max by (nodename) (\n  (\n  100 * (\n    1 - avg by (instance) (\n      rate(node_cpu_seconds_total{\n        job=\"node\",\n        mode=\"idle\"\n      }[5m])\n    )\n  )\n)\n* on (instance) group_left (nodename)\n  node_uname_info{\n    job=\"node\",\n    nodename=~\"${hostname:regex}\"\n  }\n  )",
+                        "expr": "max by (nodename) (\n  (\n    100 * (\n      1 - avg by (instance) (\n        rate(node_cpu_seconds_total{\n          job=\"node\",\n          mode=\"idle\"\n        }[$__rate_interval])\n      )\n    )\n  )\n  * on (instance) group_left (nodename)\n  (\n    topk by (instance) (\n      1,\n      timestamp(\n        node_uname_info{\n          job=\"node\",\n          nodename=~\"${hostname:pipe}\"\n        }\n      )\n    ) * 0 + 1\n  )\n)",
                         "legendFormat": "{{nodename}}",
                         "range": true
                       },

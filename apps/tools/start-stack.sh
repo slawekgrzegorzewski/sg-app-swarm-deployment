@@ -38,7 +38,7 @@ if [[ -r "$image_tags_file" ]]; then
   while IFS='=' read -r key value; do
     [[ -z "$key" || "$key" == \#* ]] && continue
     case "$key" in
-      FRONTEND_IMAGE_TAG|BACKEND_IMAGE_TAG|BANKS_IMAGE_TAG)
+      FRONTEND_IMAGE_TAG|BACKEND_IMAGE_TAG|BANKS_IMAGE_TAG|TAPO)
         if [[ "$value" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
           export "$key=$value"
         else

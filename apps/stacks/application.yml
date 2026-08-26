@@ -99,6 +99,32 @@ services:
         constraints:
           - node.labels.workload.application == true
 
+  tapo-reader:
+    image: public.registry.grzegorzewski.pl/tapo:${TAPO:-latest}
+    secrets:
+      - smart_home_db_host
+      - smart_home_db_password
+      - tapo_user
+      - tapo_password
+      - tapo_device_ip
+    networks:
+      - application_network
+    logging:
+      <<: *syslog_logging
+      options:
+        <<: *syslog_options
+        tag: application_tapo-reader
+    deploy:
+      labels:
+        - swarm.cronjob.enable=true
+        - swarm.cronjob.schedule=* * * * *
+        - swarm.cronjob.skip-running=false
+      placement:
+        constraints:
+          - node.labels.workload.application == true
+      restart_policy:
+        condition: none
+
 configs:
   backend_application_config:
     template_driver: golang
@@ -157,6 +183,16 @@ secrets:
   random_org_api_key:
     external: true
   notification_email_to:
+    external: true
+  smart_home_db_host:
+    external: true
+  smart_home_db_password:
+    external: true
+  tapo_user:
+    external: true
+  tapo_password:
+    external: true
+  tapo_device_ip:
     external: true
 
 networks:

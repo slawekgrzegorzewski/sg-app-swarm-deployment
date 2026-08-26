@@ -345,6 +345,7 @@ Polecenia managera:
 /srv/cluster/current/tools/set-image-tag.sh backend <image-tag>
 /srv/cluster/current/tools/set-image-tag.sh banks <image-tag>
 /srv/cluster/current/tools/set-image-tag.sh frontend <image-tag>
+/srv/cluster/current/tools/set-image-tag.sh tapo <image-tag>
 /srv/cluster/current/tools/restore-postgres.sh \
   postgres-YYYY-MM-DDTHH-MM-SSZ.tar.gz
 ```
@@ -356,6 +357,9 @@ przywracać `latest`. Workflowy `deploy backend image` i `deploy banks image`
 wymagają podania `image_tag`; zapisują go tym skryptem i uzgadniają stack
 `application`. Workflow Reacta powinien analogicznie wywołać
 `set-image-tag.sh frontend <image-tag>` i `start-stack.sh application`.
+Obraz czytnika Tapo używa zmiennej `TAPO`; polecenie
+`set-image-tag.sh tapo <image-tag>` zapisuje ją w tym samym pliku i wymaga
+ponownego uzgodnienia stacka `application`.
 
 ## SSH pomiędzy hostami
 
