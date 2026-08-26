@@ -7,14 +7,16 @@
     - role: docker_engine
     - role: cluster_layout
 
-- name: Install manager-only Grafana backup script
+- name: Install manager-local backup workflows
   hosts: swarm_managers
   become: true
   gather_facts: false
   tasks:
-    - name: Install cron scheduler
+    - name: Install backup scheduler and transfer dependency
       ansible.builtin.apt:
-        name: cron
+        name:
+          - cron
+          - rsync
         state: present
 
     - name: Enable cron scheduler
@@ -46,3 +48,23 @@
         minute: '30'
         hour: '2'
         job: "{{ cluster_root }}/bin/backup_grafana.sh"
+
+    - name: Install the PostgreSQL backup transfer script
+      ansible.builtin.template:
+        src: transfer_postgres_backups.sh.j2
+        dest: "{{ cluster_root }}/bin/transfer_postgres_backups.sh"
+        owner: root
+        group: "{{ cluster_admin_user }}"
+        mode: '0750'
+      vars:
+        postgres_backup_source_host: >-
+          {{ hostvars[groups['postgres_nodes'] | first].ansible_host
+             | default(groups['postgres_nodes'] | first) }}
+
+    - name: Schedule PostgreSQL backup transfer after every full hour
+      ansible.builtin.cron:
+        name: Transfer PostgreSQL backups to the manager
+        user: "{{ cluster_admin_user }}"
+        minute: '30'
+        hour: '*'
+        job: "{{ cluster_root }}/bin/transfer_postgres_backups.sh"

@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+readonly SOURCE_HOST='{{ postgres_backup_source_host }}'
+readonly SOURCE_USER='{{ cluster_admin_user }}'
+readonly SOURCE_DIRECTORY='{{ cluster_root }}/backups/postgres'
+readonly DESTINATION_DIRECTORY='{{ cluster_root }}/backups/postgres'
+readonly LOCK_FILE='{{ cluster_root }}/.postgres-backup-transfer.lock'
+
+readonly SSH_TARGET="${SOURCE_USER}@${SOURCE_HOST}"
+
+mkdir -p -- "$DESTINATION_DIRECTORY"
+exec 9>"$LOCK_FILE"
+flock -n 9 || exit 0
+
+batch_directory=''
+source_manifest=''
+cleanup() {
+  if [[ -n "$batch_directory" && -d "$batch_directory" ]]; then
+    rm -rf -- "$batch_directory"
+  fi
+  if [[ -n "$source_manifest" && -e "$source_manifest" ]]; then
+    rm -f -- "$source_manifest"
+  fi
+}
+trap cleanup EXIT
+
+remote_checksum() {
+  local remote_file="$1"
+  ssh -o BatchMode=yes -- "$SSH_TARGET" sha256sum -- "$remote_file" | awk '{print $1}'
+}
+
+local_checksum() {
+  sha256sum -- "$1" | awk '{print $1}'
+}
+
+# Do not treat an unavailable source as an empty backup directory.  A failed
+# SSH connection in a process substitution would otherwise be easy to miss.
+ssh -o BatchMode=yes -- "$SSH_TARGET" test -d "$SOURCE_DIRECTORY"
+
+source_manifest="$(mktemp "$DESTINATION_DIRECTORY/.postgres-transfer-list.XXXXXX")"
+ssh -o BatchMode=yes -- "$SSH_TARGET" \
+  "find '$SOURCE_DIRECTORY' -maxdepth 1 -type f -name 'postgres-*.tar.gz' -printf '%f\\n' | sort" \
+  > "$source_manifest"
+mapfile -t archive_names < "$source_manifest"
+
+[[ -n "${archive_names[0]:-}" ]] || exit 0
+
+# Transfer the complete set in one rsync invocation.  The temporary directory
+# keeps partial transfers invisible to readers of the destination directory.
+batch_directory="$(mktemp -d "$DESTINATION_DIRECTORY/.postgres-transfer.XXXXXX")"
+rsync -a --protect-args --include='postgres-*.tar.gz' --exclude='*' \
+  -e 'ssh -o BatchMode=yes' \
+  "$SSH_TARGET:$SOURCE_DIRECTORY/" "$batch_directory/"
+
+for archive_name in "${archive_names[@]}"; do
+  # The producer publishes only this filename format.  Keeping the accepted
+  # set narrow also makes every path passed to the remote shell predictable.
+  [[ "$archive_name" =~ ^postgres-[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}Z\.tar\.gz$ ]] || continue
+
+  remote_file="$SOURCE_DIRECTORY/$archive_name"
+  destination_file="$DESTINATION_DIRECTORY/$archive_name"
+
+  if [[ -e "$destination_file" ]]; then
+    destination_checksum="$(local_checksum "$destination_file")"
+  else
+    staged_file="$batch_directory/$archive_name"
+    [[ -s "$staged_file" ]] || {
+      echo "Downloaded backup is empty: $archive_name" >&2
+      exit 1
+    }
+
+    source_checksum="$(remote_checksum "$remote_file")"
+    staged_checksum="$(local_checksum "$staged_file")"
+    [[ "$source_checksum" == "$staged_checksum" ]] || {
+      echo "Checksum mismatch while copying: $archive_name" >&2
+      exit 1
+    }
+
+    chmod 0640 -- "$staged_file"
+    if ln -- "$staged_file" "$destination_file"; then
+      :
+    elif [[ ! -e "$destination_file" ]]; then
+      echo "Could not atomically publish backup: $archive_name" >&2
+      exit 1
+    fi
+    destination_checksum="$(local_checksum "$destination_file")"
+  fi
+
+  source_checksum="$(remote_checksum "$remote_file")"
+  [[ "$source_checksum" == "$destination_checksum" ]] || {
+    echo "Destination backup differs from source: $archive_name" >&2
+    exit 1
+  }
+
+  # Recalculate the source checksum in the same remote command that removes
+  # the file.  A source archive is deleted only after this final confirmation.
+  ssh -o BatchMode=yes -- "$SSH_TARGET" \
+    "actual=\$(sha256sum -- '$remote_file' | awk '{print \$1}'); test \"\$actual\" = '$destination_checksum' && rm -- '$remote_file'"
+  echo "Transferred and removed source backup: $archive_name"
+done
