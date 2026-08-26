@@ -113,6 +113,12 @@ services:
         gid: '472'
         mode: 0444
 
+      - source: grafana_dashboard_banks_data
+        target: /etc/grafana/provisioning/dashboards/files/banks-data.json
+        uid: '472'
+        gid: '472'
+        mode: 0444
+
     volumes:
       - /srv/cluster/data/grafana:/var/lib/grafana
     networks:
@@ -224,6 +230,9 @@ configs:
   grafana_dashboard_pjm_fetcher:
     file: ../configs/infrastructure/dashboards/pjm-fetcher.json
     name: grafana_dashboard_pjm_fetcher_${CONFIG_VERSION:-0}
+  grafana_dashboard_banks_data:
+    file: ../configs/infrastructure/dashboards/banks-data.json
+    name: grafana_dashboard_banks_data_${CONFIG_VERSION:-0}
 
 secrets:
   grafana_admin_password:

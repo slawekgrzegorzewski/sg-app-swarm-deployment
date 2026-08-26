@@ -104,6 +104,34 @@ usunie ją ze starych nodów. Stare katalogi oraz dane nie są automatycznie
 kasowane. Dla danych lokalnych ich ewentualne przeniesienie jest osobną,
 jawną operacją.
 
+### Migracja PostgreSQL między nodami
+
+Migracja PostgreSQL ma dedykowany, kontrolowany workflow. Najpierw zmień
+pojedynczy host w grupie `postgres_nodes` na host docelowy, a następnie wykonaj
+preflight:
+
+```bash
+./07-postgres-migration.sh home check
+```
+
+Właściwą migrację uruchamia:
+
+```bash
+./07-postgres-migration.sh home apply
+```
+
+Playbook wykrywa źródło z aktualnej etykiety Swarm, provisionuje katalogi na
+celu i odmawia nadpisania niepustego katalogu danych. Po potwierdzeniu wstrzymuje
+automatyczny transfer backupów, zatrzymuje aplikację, tworzy finalny backup,
+kopiuje go z weryfikacją SHA-256 na managera i host docelowy, zatrzymuje bazę,
+przełącza etykietę, uruchamia PostgreSQL, odtwarza backup i ponownie uruchamia
+aplikację. `1Do momentu ponownego
+uruchomienia aplikacji błąd powoduje próbę
+automatycznego przywrócenia etykiety oraz usług na źródle. Po dopuszczeniu
+nowych zapisów automatyczny rollback nie jest już wykonywany. Harmonogram
+transferu jest wznawiany zarówno po sukcesie, jak i próbie rollbacku. Katalog
+danych na starym nodzie nie jest usuwany i pozostaje ręcznym punktem rollbacku.
+
 PostgreSQL, registry i gateway mają obecnie dokładnie po jednym nodzie.
 `letsencrypt_hosts` musi wskazywać ten sam pojedynczy host co `gateway_nodes` i
 musi to być manager Swarma. Dzięki temu lokalny webroot HTTP-01 i certyfikat

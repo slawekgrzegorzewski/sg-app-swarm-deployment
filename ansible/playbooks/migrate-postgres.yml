@@ -1,0 +1,683 @@
+---
+- name: Provision the desired PostgreSQL node
+  hosts: postgres_nodes
+  become: true
+  gather_facts: false
+  roles:
+    - role: cluster_layout
+
+- name: Migrate PostgreSQL to the desired inventory node
+  hosts: swarm_managers
+  become: true
+  gather_facts: false
+  serial: 1
+  vars:
+    postgres_migration_target_inventory: "{{ groups['postgres_nodes'] | first }}"
+    postgres_migration_target_hostname: >-
+      {{ hostvars[postgres_migration_target_inventory].base_host_hostname }}
+    postgres_migration_target_address: >-
+      {{ hostvars[postgres_migration_target_inventory].ansible_host
+         | default(postgres_migration_target_inventory) }}
+    postgres_migration_backup_directory: "{{ cluster_root }}/backups/postgres"
+    postgres_migration_tools_directory: "{{ cluster_root }}/current/tools"
+  tasks:
+    - name: Validate the desired migration target
+      ansible.builtin.assert:
+        that:
+          - groups.get('postgres_nodes', []) | length == 1
+          - postgres_migration_target_inventory in groups.get('bootstrap_hosts', [])
+          - postgres_migration_target_hostname | length > 0
+          - postgres_migration_target_address is match('^[A-Za-z0-9._-]+$')
+        fail_msg: >-
+          Configure exactly one valid bootstrap host in postgres_nodes before
+          running the migration.
+
+    - name: Find the node currently carrying the PostgreSQL label
+      ansible.builtin.command:
+        argv:
+          - docker
+          - node
+          - ls
+          - --filter
+          - node.label=workload.postgres=true
+          - --format
+          - "{% raw %}{{.Hostname}}{% endraw %}"
+      register: postgres_migration_labeled_nodes
+      changed_when: false
+      check_mode: false
+
+    - name: Validate the current PostgreSQL placement
+      ansible.builtin.assert:
+        that:
+          - postgres_migration_labeled_nodes.stdout_lines | length == 1
+          - postgres_migration_labeled_nodes.stdout_lines[0] != postgres_migration_target_hostname
+        fail_msg: >-
+          Expected exactly one currently labelled PostgreSQL node and a
+          different desired target. Current={{ postgres_migration_labeled_nodes.stdout_lines }},
+          target={{ postgres_migration_target_hostname }}.
+
+    - name: Record the current PostgreSQL hostname
+      ansible.builtin.set_fact:
+        postgres_migration_source_hostname: "{{ postgres_migration_labeled_nodes.stdout_lines[0] }}"
+
+    - name: Map the current PostgreSQL node to an inventory host
+      ansible.builtin.set_fact:
+        postgres_migration_source_inventory: "{{ item }}"
+      loop: "{{ groups.get('bootstrap_hosts', []) }}"
+      when: >-
+        (hostvars[item].base_host_hostname | default(item))
+        == postgres_migration_source_hostname
+
+    - name: Validate the source inventory mapping
+      ansible.builtin.assert:
+        that:
+          - postgres_migration_source_inventory is defined
+        fail_msg: >-
+          Could not map Swarm node {{ postgres_migration_source_hostname }}
+          to a bootstrap_hosts inventory entry.
+
+    - name: Record the source connection address
+      ansible.builtin.set_fact:
+        postgres_migration_source_address: >-
+          {{ hostvars[postgres_migration_source_inventory].ansible_host
+             | default(postgres_migration_source_inventory) }}
+
+    - name: Validate the source connection address
+      ansible.builtin.assert:
+        that:
+          - postgres_migration_source_address is match('^[A-Za-z0-9._-]+$')
+
+    - name: Check required database services
+      ansible.builtin.command:
+        argv:
+          - docker
+          - service
+          - inspect
+          - "{{ item }}"
+      loop:
+        - database_postgres
+        - database_postgres-backup
+        - core_swarm-cronjob
+      changed_when: false
+      check_mode: false
+
+    - name: Verify that the Swarm cron scheduler is running
+      ansible.builtin.shell: |
+        set -o pipefail
+        docker service ps core_swarm-cronjob \
+          --filter desired-state=running \
+          --format '{% raw %}{{.CurrentState}}{% endraw %}' | grep -Fq Running
+      args:
+        executable: /bin/bash
+      changed_when: false
+      check_mode: false
+
+    - name: Validate migration tools
+      ansible.builtin.assert:
+        that:
+          - postgres_migration_tools.results | map(attribute='stat.exists') | min
+        fail_msg: "The active release does not contain every PostgreSQL migration tool."
+
+    - name: Inspect the target PostgreSQL data directory
+      ansible.builtin.find:
+        paths: "{{ cluster_root }}/data/postgres"
+        file_type: any
+        hidden: true
+        recurse: false
+      delegate_to: "{{ postgres_migration_target_inventory }}"
+      register: postgres_migration_target_data
+      when: not ansible_check_mode
+
+    - name: Refuse to overwrite target PostgreSQL data
+      ansible.builtin.assert:
+        that:
+          - postgres_migration_target_data.matched == 0
+        fail_msg: >-
+          Target directory {{ cluster_root }}/data/postgres on
+          {{ postgres_migration_target_hostname }} is not empty. Move or
+          remove its contents explicitly before migration.
+      when: not ansible_check_mode
+
+    - name: Verify manager SSH access to the source and target
+      ansible.builtin.command:
+        argv:
+          - ssh
+          - -o
+          - BatchMode=yes
+          - "{{ cluster_admin_user }}@{{ item }}"
+          - test
+          - -d
+          - "{{ postgres_migration_backup_directory }}"
+      become_user: "{{ cluster_admin_user }}"
+      loop:
+        - "{{ postgres_migration_source_address }}"
+        - "{{ postgres_migration_target_address }}"
+      changed_when: false
+      when: not ansible_check_mode
+
+    - name: Report the planned PostgreSQL migration
+      ansible.builtin.debug:
+        msg: >-
+          PostgreSQL would be migrated from
+          {{ postgres_migration_source_hostname }} to
+          {{ postgres_migration_target_hostname }}. The application stack
+          would be stopped for the final backup, restore, and validation.
+      when: ansible_check_mode
+
+    - name: End after migration preflight in check mode
+      ansible.builtin.meta: end_play
+      when: ansible_check_mode
+
+    - name: Check whether the application stack is deployed
+      ansible.builtin.shell: |
+        set -o pipefail
+        docker stack ls --format '{% raw %}{{.Name}}{% endraw %}' | grep -Fxq application
+      args:
+        executable: /bin/bash
+      register: postgres_migration_application_stack
+      changed_when: false
+      failed_when: postgres_migration_application_stack.rc not in [0, 1]
+
+    - name: Initialize migration state
+      ansible.builtin.set_fact:
+        postgres_migration_application_was_running: >-
+          {{ postgres_migration_application_stack.rc == 0 }}
+        postgres_migration_database_was_stopped: false
+
+    - name: Confirm the PostgreSQL migration
+      ansible.builtin.pause:
+        prompt: >-
+          Type MIGRATE to stop application writes and migrate PostgreSQL from
+          {{ postgres_migration_source_hostname }} to
+          {{ postgres_migration_target_hostname }}
+      register: postgres_migration_confirmation
+
+    - name: Require explicit migration confirmation
+      ansible.builtin.assert:
+        that:
+          - postgres_migration_confirmation.user_input == 'MIGRATE'
+        fail_msg: Migration cancelled.
+
+    - name: Execute PostgreSQL migration with rollback protection
+      block:
+        - name: Pause scheduled PostgreSQL backup transfers
+          ansible.builtin.cron:
+            name: Transfer PostgreSQL backups to the manager
+            user: "{{ cluster_admin_user }}"
+            minute: '30'
+            hour: '*'
+            job: "{{ cluster_root }}/bin/transfer_postgres_backups.sh"
+            disabled: true
+
+        - name: Wait for an active PostgreSQL backup transfer
+          ansible.builtin.command:
+            argv:
+              - flock
+              - --wait
+              - '600'
+              - "{{ cluster_root }}/.postgres-backup-transfer.lock"
+              - 'true'
+          become_user: "{{ cluster_admin_user }}"
+          changed_when: false
+
+        - name: Stop the application stack
+          ansible.builtin.command:
+            argv:
+              - "{{ postgres_migration_tools_directory }}/stop-stack.sh"
+              - application
+          when: postgres_migration_application_was_running
+
+        - name: Wait until application services are removed
+          ansible.builtin.command:
+            argv:
+              - docker
+              - service
+              - ls
+              - --filter
+              - label=com.docker.stack.namespace=application
+              - --format
+              - "{% raw %}{{.ID}}{% endraw %}"
+          register: postgres_migration_application_services
+          changed_when: false
+          until: postgres_migration_application_services.stdout | trim == ''
+          retries: 60
+          delay: 2
+          when: postgres_migration_application_was_running
+
+        - name: List source backups before the final backup
+          ansible.builtin.find:
+            paths: "{{ postgres_migration_backup_directory }}"
+            patterns: 'postgres-*.tar.gz'
+            file_type: file
+            recurse: false
+          delegate_to: "{{ postgres_migration_source_inventory }}"
+          register: postgres_migration_backups_before
+
+        - name: Start the final PostgreSQL backup
+          ansible.builtin.command:
+            argv:
+              - docker
+              - service
+              - update
+              - --force
+              - --detach=true
+              - database_postgres-backup
+          changed_when: true
+
+        - name: Wait for the final PostgreSQL backup
+          ansible.builtin.shell: |
+            set -o pipefail
+            docker service ps database_postgres-backup \
+              --no-trunc --format '{% raw %}{{.CurrentState}}{% endraw %}' | head -n 1
+          args:
+            executable: /bin/bash
+          register: postgres_migration_backup_state
+          changed_when: false
+          failed_when: >-
+            postgres_migration_backup_state.stdout
+            is match('^(Failed|Rejected)')
+          until: postgres_migration_backup_state.stdout is match('^Complete')
+          retries: 300
+          delay: 2
+
+        - name: List source backups after the final backup
+          ansible.builtin.find:
+            paths: "{{ postgres_migration_backup_directory }}"
+            patterns: 'postgres-*.tar.gz'
+            file_type: file
+            recurse: false
+          delegate_to: "{{ postgres_migration_source_inventory }}"
+          register: postgres_migration_backups_after
+
+        - name: Identify the final backup archive
+          ansible.builtin.set_fact:
+            postgres_migration_new_backups: >-
+              {{ postgres_migration_backups_after.files
+                 | map(attribute='path')
+                 | difference(postgres_migration_backups_before.files
+                              | map(attribute='path'))
+                 | list }}
+
+        - name: Validate the final backup archive
+          ansible.builtin.assert:
+            that:
+              - postgres_migration_new_backups | length == 1
+            fail_msg: >-
+              Expected exactly one new final backup, found
+              {{ postgres_migration_new_backups }}.
+
+        - name: Record the final backup filename
+          ansible.builtin.set_fact:
+            postgres_migration_archive_name: >-
+              {{ postgres_migration_new_backups[0] | basename }}
+
+        - name: Copy and verify the final backup on the manager
+          ansible.builtin.shell: |
+            set -Eeuo pipefail
+            destination="$DESTINATION_DIRECTORY/$ARCHIVE_NAME"
+            if [[ -e "$destination" ]]; then
+              local_checksum="$(sha256sum -- "$destination" | awk '{print $1}')"
+            else
+              temporary="$(mktemp "$DESTINATION_DIRECTORY/.${ARCHIVE_NAME}.XXXXXX")"
+              trap 'rm -f -- "$temporary"' EXIT
+              scp -q "$SOURCE_ENDPOINT:$SOURCE_DIRECTORY/$ARCHIVE_NAME" "$temporary"
+              local_checksum="$(sha256sum -- "$temporary" | awk '{print $1}')"
+              remote_checksum="$(ssh -o BatchMode=yes "$SOURCE_ENDPOINT" \
+                sha256sum -- "$SOURCE_DIRECTORY/$ARCHIVE_NAME" | awk '{print $1}')"
+              [[ "$local_checksum" == "$remote_checksum" ]]
+              chmod 0640 -- "$temporary"
+              ln -- "$temporary" "$destination"
+              rm -f -- "$temporary"
+              trap - EXIT
+              echo COPIED
+            fi
+            remote_checksum="$(ssh -o BatchMode=yes "$SOURCE_ENDPOINT" \
+              sha256sum -- "$SOURCE_DIRECTORY/$ARCHIVE_NAME" | awk '{print $1}')"
+            [[ "$local_checksum" == "$remote_checksum" ]]
+          args:
+            executable: /bin/bash
+          environment:
+            ARCHIVE_NAME: "{{ postgres_migration_archive_name }}"
+            DESTINATION_DIRECTORY: "{{ postgres_migration_backup_directory }}"
+            SOURCE_DIRECTORY: "{{ postgres_migration_backup_directory }}"
+            SOURCE_ENDPOINT: >-
+              {{ cluster_admin_user }}@{{ postgres_migration_source_address }}
+          become_user: "{{ cluster_admin_user }}"
+          register: postgres_migration_manager_copy
+          changed_when: "'COPIED' in postgres_migration_manager_copy.stdout"
+
+        - name: Copy and verify the final backup on the target
+          ansible.builtin.shell: |
+            set -Eeuo pipefail
+            source="$SOURCE_DIRECTORY/$ARCHIVE_NAME"
+            source_checksum="$(sha256sum -- "$source" | awk '{print $1}')"
+            remote_destination="$TARGET_DIRECTORY/$ARCHIVE_NAME"
+            if ssh -o BatchMode=yes "$TARGET_ENDPOINT" test -e "$remote_destination"; then
+              remote_checksum="$(ssh -o BatchMode=yes "$TARGET_ENDPOINT" \
+                sha256sum -- "$remote_destination" | awk '{print $1}')"
+              [[ "$source_checksum" == "$remote_checksum" ]]
+              exit 0
+            fi
+            remote_temporary="$(ssh -o BatchMode=yes "$TARGET_ENDPOINT" \
+              mktemp "$TARGET_DIRECTORY/.${ARCHIVE_NAME}.XXXXXX")"
+            trap 'ssh -o BatchMode=yes "$TARGET_ENDPOINT" rm -f -- "$remote_temporary"' EXIT
+            scp -q "$source" "$TARGET_ENDPOINT:$remote_temporary"
+            remote_checksum="$(ssh -o BatchMode=yes "$TARGET_ENDPOINT" \
+              sha256sum -- "$remote_temporary" | awk '{print $1}')"
+            [[ "$source_checksum" == "$remote_checksum" ]]
+            ssh -o BatchMode=yes "$TARGET_ENDPOINT" \
+              "chmod 0640 '$remote_temporary' && ln '$remote_temporary' '$remote_destination' && rm -f -- '$remote_temporary'"
+            trap - EXIT
+            echo COPIED
+          args:
+            executable: /bin/bash
+          environment:
+            ARCHIVE_NAME: "{{ postgres_migration_archive_name }}"
+            SOURCE_DIRECTORY: "{{ postgres_migration_backup_directory }}"
+            TARGET_DIRECTORY: "{{ postgres_migration_backup_directory }}"
+            TARGET_ENDPOINT: >-
+              {{ cluster_admin_user }}@{{ postgres_migration_target_address }}
+          become_user: "{{ cluster_admin_user }}"
+          register: postgres_migration_target_copy
+          changed_when: "'COPIED' in postgres_migration_target_copy.stdout"
+
+        - name: Stop the database stack
+          ansible.builtin.command:
+            argv:
+              - "{{ postgres_migration_tools_directory }}/stop-stack.sh"
+              - database
+
+        - name: Record that the original database stack is stopping
+          ansible.builtin.set_fact:
+            postgres_migration_database_was_stopped: true
+
+        - name: Wait until database services are removed
+          ansible.builtin.command:
+            argv:
+              - docker
+              - service
+              - ls
+              - --filter
+              - label=com.docker.stack.namespace=database
+              - --format
+              - "{% raw %}{{.ID}}{% endraw %}"
+          register: postgres_migration_database_services
+          changed_when: false
+          until: postgres_migration_database_services.stdout | trim == ''
+          retries: 60
+          delay: 2
+
+        - name: Add the PostgreSQL label to the target node
+          ansible.builtin.command:
+            argv:
+              - docker
+              - node
+              - update
+              - --label-add
+              - workload.postgres=true
+              - "{{ postgres_migration_target_hostname }}"
+          changed_when: true
+
+        - name: Remove the PostgreSQL label from the source node
+          ansible.builtin.command:
+            argv:
+              - docker
+              - node
+              - update
+              - --label-rm
+              - workload.postgres
+              - "{{ postgres_migration_source_hostname }}"
+          changed_when: true
+
+        - name: Start the database stack on the target
+          ansible.builtin.command:
+            argv:
+              - "{{ postgres_migration_tools_directory }}/start-stack.sh"
+              - database
+
+        - name: Restore the final PostgreSQL backup
+          ansible.builtin.shell: |
+            set -o pipefail
+            printf 'RESTORE\n' | \
+              "{{ postgres_migration_tools_directory }}/restore-postgres.sh" \
+              "$ARCHIVE_NAME"
+          args:
+            executable: /bin/bash
+          environment:
+            ARCHIVE_NAME: "{{ postgres_migration_archive_name }}"
+          changed_when: true
+
+        - name: Run and verify the first PostgreSQL backup on the target
+          ansible.builtin.command:
+            argv:
+              - docker
+              - service
+              - update
+              - --force
+              - --detach=true
+              - database_postgres-backup
+          changed_when: true
+
+        - name: Wait for the target PostgreSQL backup to complete
+          ansible.builtin.shell: |
+            set -o pipefail
+            docker service ps database_postgres-backup \
+              --no-trunc --format '{% raw %}{{.Node}} {{.CurrentState}}{% endraw %}' | head -n 1
+          args:
+            executable: /bin/bash
+          register: postgres_migration_target_backup_state
+          changed_when: false
+          failed_when: >-
+            postgres_migration_target_backup_state.stdout
+            is match('^[^ ]+ (Failed|Rejected)')
+          until:
+            - postgres_migration_target_hostname in postgres_migration_target_backup_state.stdout
+            - postgres_migration_target_backup_state.stdout is match('^[^ ]+ Complete')
+          retries: 300
+          delay: 2
+
+        - name: Confirm that the target backup directory contains an archive
+          ansible.builtin.find:
+            paths: "{{ postgres_migration_backup_directory }}"
+            patterns: 'postgres-*.tar.gz'
+            file_type: file
+            recurse: false
+          delegate_to: "{{ postgres_migration_target_inventory }}"
+          register: postgres_migration_target_backups
+
+        - name: Validate the target PostgreSQL backup
+          ansible.builtin.assert:
+            that:
+              - postgres_migration_target_backups.matched | int > 0
+            fail_msg: >-
+              PostgreSQL backup service completed, but no archive exists in
+              {{ postgres_migration_backup_directory }} on
+              {{ postgres_migration_target_hostname }}.
+
+        - name: Verify that PostgreSQL is running on the target
+          ansible.builtin.shell: |
+            set -o pipefail
+            docker service ps database_postgres \
+              --filter desired-state=running \
+              --format '{% raw %}{{.Node}} {{.CurrentState}}{% endraw %}' | head -n 1
+          args:
+            executable: /bin/bash
+          register: postgres_migration_postgres_state
+          changed_when: false
+          until:
+            - postgres_migration_target_hostname in postgres_migration_postgres_state.stdout
+            - "'Running' in postgres_migration_postgres_state.stdout"
+          retries: 60
+          delay: 2
+
+        - name: Update the manager PostgreSQL backup source
+          ansible.builtin.template:
+            src: transfer_postgres_backups.sh.j2
+            dest: "{{ cluster_root }}/bin/transfer_postgres_backups.sh"
+            owner: root
+            group: "{{ cluster_admin_user }}"
+            mode: '0750'
+          vars:
+            postgres_backup_source_host: "{{ postgres_migration_target_address }}"
+
+      rescue:
+        - name: Report migration failure and rollback
+          ansible.builtin.debug:
+            msg: >-
+              Migration failed. Restoring the PostgreSQL label and services on
+              {{ postgres_migration_source_hostname }}.
+
+        - name: Restore the manager PostgreSQL backup source after rollback
+          ansible.builtin.template:
+            src: transfer_postgres_backups.sh.j2
+            dest: "{{ cluster_root }}/bin/transfer_postgres_backups.sh"
+            owner: root
+            group: "{{ cluster_admin_user }}"
+            mode: '0750'
+          vars:
+            postgres_backup_source_host: "{{ postgres_migration_source_address }}"
+          failed_when: false
+
+        - name: Stop application writes before rollback
+          ansible.builtin.command:
+            argv:
+              - "{{ postgres_migration_tools_directory }}/stop-stack.sh"
+              - application
+          failed_when: false
+          when:
+            - postgres_migration_database_was_stopped
+            - postgres_migration_application_was_running
+
+        - name: Stop a partially deployed database stack
+          ansible.builtin.command:
+            argv:
+              - "{{ postgres_migration_tools_directory }}/stop-stack.sh"
+              - database
+          failed_when: false
+          when: postgres_migration_database_was_stopped
+
+        - name: Wait for database services to stop before rollback
+          ansible.builtin.command:
+            argv:
+              - docker
+              - service
+              - ls
+              - --filter
+              - label=com.docker.stack.namespace=database
+              - --format
+              - "{% raw %}{{.ID}}{% endraw %}"
+          register: postgres_migration_rollback_database_services
+          changed_when: false
+          failed_when: false
+          until: postgres_migration_rollback_database_services.stdout | trim == ''
+          retries: 60
+          delay: 2
+          when: postgres_migration_database_was_stopped
+          ignore_errors: true
+
+        - name: Restore the PostgreSQL label on the source
+          ansible.builtin.command:
+            argv:
+              - docker
+              - node
+              - update
+              - --label-add
+              - workload.postgres=true
+              - "{{ postgres_migration_source_hostname }}"
+          failed_when: false
+          when: postgres_migration_database_was_stopped
+
+        - name: Remove the PostgreSQL label from the target
+          ansible.builtin.command:
+            argv:
+              - docker
+              - node
+              - update
+              - --label-rm
+              - workload.postgres
+              - "{{ postgres_migration_target_hostname }}"
+          failed_when: false
+          when: postgres_migration_database_was_stopped
+
+        - name: Restart the original database stack
+          ansible.builtin.command:
+            argv:
+              - "{{ postgres_migration_tools_directory }}/start-stack.sh"
+              - database
+          failed_when: false
+          when: postgres_migration_database_was_stopped
+
+        - name: Wait for the original PostgreSQL service after rollback
+          ansible.builtin.shell: |
+            set -o pipefail
+            docker service ps database_postgres \
+              --filter desired-state=running \
+              --format '{% raw %}{{.Node}} {{.CurrentState}}{% endraw %}' | head -n 1
+          args:
+            executable: /bin/bash
+          register: postgres_migration_rollback_postgres_state
+          changed_when: false
+          failed_when: false
+          until:
+            - postgres_migration_source_hostname in postgres_migration_rollback_postgres_state.stdout
+            - "'Running' in postgres_migration_rollback_postgres_state.stdout"
+          retries: 60
+          delay: 2
+          when: postgres_migration_database_was_stopped
+          ignore_errors: true
+
+        - name: Restart the application stack after rollback
+          ansible.builtin.command:
+            argv:
+              - "{{ postgres_migration_tools_directory }}/start-stack.sh"
+              - application
+          failed_when: false
+          when: postgres_migration_application_was_running
+
+        - name: Fail after PostgreSQL migration rollback
+          ansible.builtin.fail:
+            msg: >-
+              PostgreSQL migration failed. Rollback was attempted; verify
+              database_postgres and application services before retrying.
+      always:
+        - name: Resume scheduled PostgreSQL backup transfers
+          ansible.builtin.cron:
+            name: Transfer PostgreSQL backups to the manager
+            user: "{{ cluster_admin_user }}"
+            minute: '30'
+            hour: '*'
+            job: "{{ cluster_root }}/bin/transfer_postgres_backups.sh"
+            disabled: false
+          failed_when: false
+
+    # Once the application is started it may write to the new database, so an
+    # automatic database rollback is no longer safe beyond this point.
+    - name: Start the application stack after committed migration
+      ansible.builtin.command:
+        argv:
+          - "{{ postgres_migration_tools_directory }}/start-stack.sh"
+          - application
+      when: postgres_migration_application_was_running
+
+    - name: Wait for application replicas after migration
+      ansible.builtin.shell: |
+        set -o pipefail
+        docker stack services \
+          --format '{% raw %}{{.Replicas}}{% endraw %}' application | \
+          awk -F/ '$1 != $2 { exit 1 }'
+      args:
+        executable: /bin/bash
+      register: postgres_migration_application_state
+      changed_when: false
+      until: postgres_migration_application_state.rc == 0
+      retries: 60
+      delay: 2
+      when: postgres_migration_application_was_running
+
+    - name: Report successful PostgreSQL migration
+      ansible.builtin.debug:
+        msg: >-
+          PostgreSQL migrated from {{ postgres_migration_source_hostname }}
+          to {{ postgres_migration_target_hostname }} using
+          {{ postgres_migration_archive_name }}. The old data directory was
+          deliberately retained for manual rollback.
