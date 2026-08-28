@@ -11,6 +11,14 @@ services:
       AWS_S3_BUCKET: ${AWS_S3_BUCKET:-intellectualpropertytask}
     restart: "no"
     volumes:
-      - ${DEVELOPMENT_DIRECTORY:?Set DEVELOPMENT_DIRECTORY to the local backup directory}/.aws:/root/.aws:ro
-      - ${DEVELOPMENT_DIRECTORY:?Set DEVELOPMENT_DIRECTORY to the local backup directory}/.ssh:/root/.ssh:ro
-      - ${DEVELOPMENT_DIRECTORY:?Set DEVELOPMENT_DIRECTORY to the local backup directory}:/development
+      - type: bind
+        source: "${DEVELOPMENT_DIRECTORY:?Set DEVELOPMENT_DIRECTORY to the local backup directory}/.aws"
+        target: /root/.aws
+        read_only: true
+      - type: bind
+        source: "${DEVELOPMENT_DIRECTORY:?Set DEVELOPMENT_DIRECTORY to the local backup directory}/.ssh"
+        target: /root/.ssh
+        read_only: true
+      - type: bind
+        source: "${DEVELOPMENT_DIRECTORY:?Set DEVELOPMENT_DIRECTORY to the local backup directory}"
+        target: /development

@@ -14,12 +14,24 @@ Przy pierwszym połączeniu downloader automatycznie zapisuje klucz hosta
 managera w `known_hosts` w głównym katalogu backupu. Kolejne uruchomienia
 akceptują tylko ten sam klucz; jego zmiana kończy połączenie błędem.
 
-W PowerShellu:
+Uruchom polecenie z katalogu `tools/backups-downloader`. W PowerShellu ustaw
+zmienną przed uruchomieniem Compose:
 
 ```powershell
 $env:DEVELOPMENT_DIRECTORY = 'D:\OneDrive\Dokumenty\SG app backup'
 docker compose up --build --abort-on-container-exit
 ```
+
+W macOS/Linux:
+
+```bash
+export DEVELOPMENT_DIRECTORY="$HOME/backup"
+docker compose up --build --abort-on-container-exit
+```
+
+`DEVELOPMENT_DIRECTORY` musi wskazywać istniejący lokalny katalog. Składnia
+bind mountów w pliku Compose zachowuje poprawną interpretację ścieżek Windows,
+w tym ścieżek z literą dysku, np. `D:\OneDrive\Dokumenty\SG app backup`.
 
 Po zakończeniu pliki znajdą się w:
 
