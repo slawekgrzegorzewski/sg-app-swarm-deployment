@@ -104,8 +104,9 @@ docker stack deploy \
 while IFS= read -r config_name; do
   case "$config_name" in
     gateway_nginx_*|registry_config_*|\
-    postgres_backup_script_*|postgres_restore_script_*|\
+    postgres_backup_script_*|postgres_restore_script_*|keycloak_database_init_*|\
     backend_application_*|banks_application_*|backend_logback_*|banks_logback_*|\
+    keycloak_start_*|keycloak_realm_*|\
     fluent_bit_config_*|cloudwatch_config_*|cloudwatch_common_config_*|\
     alloy_config_*|loki_config_*|prometheus_config_*|grafana_datasources_*|grafana_dashboards_*|grafana_dashboard_swarm_monitoring_*)
       config_stack="$(docker config inspect "$config_name" \

@@ -9,6 +9,10 @@ docker_swarm_secrets:
     reference: op://Private/SG App secrets/htpasswd
   - name: jwt_secret_code
     reference: op://Private/SG App secrets/jwt_secret_code
+  - name: keycloak_db_password
+    reference: op://Private/SG App secrets/keycloak_db_password
+  - name: keycloak_bootstrap_admin_password
+    reference: op://Private/SG App secrets/keycloak_bootstrap_admin_password
   - name: sendgrid_api_key
     reference: op://Private/SG App secrets/sendgrid_api_key
   - name: nordigen_secret_id

@@ -99,6 +99,57 @@ services:
         constraints:
           - node.labels.workload.application == true
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.5.7
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://database_postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_BOOTSTRAP_ADMIN_USERNAME: bootstrap-admin
+      KC_HOSTNAME: https://auth.grzegorzewski.pl
+      KC_HTTP_ENABLED: 'true'
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: 'true'
+      KC_METRICS_ENABLED: 'true'
+      TZ: Europe/Warsaw
+    configs:
+      - source: keycloak_start_script
+        target: /usr/local/bin/start-keycloak
+        uid: '1000'
+        gid: '0'
+        mode: 0550
+      - source: keycloak_realm
+        target: /opt/keycloak/data/import/sg-realm.json
+        uid: '1000'
+        gid: '0'
+        mode: 0444
+    secrets:
+      - keycloak_db_password
+      - keycloak_bootstrap_admin_password
+    networks:
+      - application_network
+    logging:
+      <<: *syslog_logging
+      options:
+        <<: *syslog_options
+        tag: application_keycloak
+    entrypoint:
+      - /bin/sh
+      - /usr/local/bin/start-keycloak
+    deploy:
+      placement:
+        constraints:
+          - node.labels.workload.application == true
+      replicas: 1
+      resources:
+        limits:
+          memory: 1G
+      update_config:
+        order: stop-first
+        failure_action: rollback
+      rollback_config:
+        order: stop-first
+
   tapo-reader:
     image: public.registry.grzegorzewski.pl/tapo:${TAPO:-latest}
     secrets:
@@ -140,9 +191,19 @@ configs:
   banks_logback_config:
     file: ../configs/application/logback-banks.xml
     name: banks_logback_${CONFIG_VERSION:-0}
+  keycloak_start_script:
+    file: ../configs/application/start-keycloak.sh
+    name: keycloak_start_${CONFIG_VERSION:-0}
+  keycloak_realm:
+    file: ../configs/application/sg-realm.json
+    name: keycloak_realm_${CONFIG_VERSION:-0}
 
 secrets:
   jwt_secret_code:
+    external: true
+  keycloak_db_password:
+    external: true
+  keycloak_bootstrap_admin_password:
     external: true
   sendgrid_api_key:
     external: true

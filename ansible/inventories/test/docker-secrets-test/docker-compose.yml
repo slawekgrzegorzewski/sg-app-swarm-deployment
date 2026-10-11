@@ -16,6 +16,8 @@ services:
     secrets:
       - registry_htpasswd
       - jwt_secret_code
+      - keycloak_db_password
+      - keycloak_bootstrap_admin_password
       - sendgrid_api_key
       - nordigen_secret_id
       - nordigen_secret_key
@@ -54,6 +56,10 @@ secrets:
   registry_htpasswd:
     external: true
   jwt_secret_code:
+    external: true
+  keycloak_db_password:
+    external: true
+  keycloak_bootstrap_admin_password:
     external: true
   sendgrid_api_key:
     external: true

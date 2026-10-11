@@ -22,3 +22,9 @@ installed only on the Swarm manager as `/srv/cluster/releases/<release-id>`;
 Use `/srv/cluster/current/tools/start-all.sh` to reconcile all stacks or
 `start-stack.sh <name>` for one of `core`, `database`, `application`, and
 `infrastructure`.
+
+The application stack also contains Keycloak. Its realm model and migration
+notes are in [`keycloak/README.md`](keycloak/README.md).
+
+The application stack also contains Keycloak. Its realm model and migration
+notes are in [`keycloak/README.md`](keycloak/README.md).

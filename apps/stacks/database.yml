@@ -84,6 +84,38 @@ services:
         constraints:
           - node.labels.workload.postgres == true
 
+  keycloak-database-init:
+    image: postgres:18.4
+    environment:
+      DATABASE_HOST: database_postgres
+      TZ: Europe/Warsaw
+      PGTZ: Europe/Warsaw
+    configs:
+      - source: keycloak_database_init_script
+        target: /usr/local/bin/initialize-keycloak-database
+        uid: '999'
+        gid: '999'
+        mode: 0550
+    secrets:
+      - postgres_password
+      - keycloak_db_password
+    networks:
+      - application_network
+    logging:
+      <<: *syslog_logging
+      options:
+        <<: *syslog_options
+        tag: database_keycloak-init
+    entrypoint:
+      - /bin/bash
+      - /usr/local/bin/initialize-keycloak-database
+    deploy:
+      placement:
+        constraints:
+          - node.labels.workload.postgres == true
+      restart_policy:
+        condition: on-failure
+
 configs:
   postgres_backup_script:
     file: ../configs/database/backup-data.sh
@@ -91,9 +123,14 @@ configs:
   postgres_restore_script:
     file: ../configs/database/restore-data.sh
     name: postgres_restore_script_${CONFIG_VERSION:-0}
+  keycloak_database_init_script:
+    file: ../configs/database/initialize-keycloak-database.sh
+    name: keycloak_database_init_${CONFIG_VERSION:-0}
 
 secrets:
   postgres_password:
+    external: true
+  keycloak_db_password:
     external: true
 
 networks:
