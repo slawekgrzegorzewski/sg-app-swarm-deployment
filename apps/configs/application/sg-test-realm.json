@@ -1,0 +1,108 @@
+{
+  "realm": "sg-test",
+  "displayName": "SG Applications Test",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "registrationEmailAsUsername": true,
+  "rememberMe": true,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "roles": {
+    "realm": [
+      {
+        "name": "ADMIN",
+        "description": "Administrator level in at least one domain. Domain membership in the groups claim remains authoritative."
+      },
+      {
+        "name": "USER",
+        "description": "User level in at least one domain. Domain membership in the groups claim remains authoritative."
+      }
+    ]
+  },
+  "groups": [
+    {
+      "name": "domains",
+      "attributes": {
+        "description": [
+          "Create one child group per domain. Each domain has ADMIN and USER child groups."
+        ]
+      }
+    },
+    {
+      "name": "applications",
+      "attributes": {
+        "description": [
+          "Create one child group per application and grant it to entitled users."
+        ]
+      }
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "sg-frontend",
+      "name": "SG frontend (local test)",
+      "description": "Public OIDC client for the local browser frontend.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:3000/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "protocolMappers": [
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "full.path": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "claim.name": "groups"
+          }
+        },
+        {
+          "name": "sg-api audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "sg-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "sg-api",
+      "name": "SG API",
+      "description": "Resource-server audience for the backend API.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "bearerOnly": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false
+    }
+  ]
+}

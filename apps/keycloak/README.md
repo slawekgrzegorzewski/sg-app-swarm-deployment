@@ -9,6 +9,13 @@ accounts and configuration changed through the admin console during later
 deployments. Treat [`../configs/application/sg-realm.json`](../configs/application/sg-realm.json)
 as the bootstrap definition, not as a mechanism for overwriting a live realm.
 
+The `sg-test` realm has the same roles, groups, and OIDC clients, with the
+`sg-frontend` client restricted to `http://localhost:3000/*` for local frontend
+development. Its issuer is
+`https://auth.grzegorzewski.pl/realms/sg-test`. It is imported on Keycloak
+startup only if `sg-test` does not already exist; changes to the JSON do not
+update an existing realm.
+
 ## Authorization model
 
 The `groups` claim is the source of a user's scoped permissions. Create groups

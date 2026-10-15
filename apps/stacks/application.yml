@@ -123,6 +123,11 @@ services:
         uid: '1000'
         gid: '0'
         mode: 0444
+      - source: keycloak_test_realm
+        target: /opt/keycloak/data/import/sg-test-realm.json
+        uid: '1000'
+        gid: '0'
+        mode: 0444
     secrets:
       - keycloak_db_password
       - keycloak_bootstrap_admin_password
@@ -197,6 +202,9 @@ configs:
   keycloak_realm:
     file: ../configs/application/sg-realm.json
     name: keycloak_realm_${CONFIG_VERSION:-0}
+  keycloak_test_realm:
+    file: ../configs/application/sg-test-realm.json
+    name: keycloak_test_realm_${CONFIG_VERSION:-0}
 
 secrets:
   jwt_secret_code:
