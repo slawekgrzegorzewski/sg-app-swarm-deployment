@@ -6,4 +6,6 @@ export KC_BOOTSTRAP_ADMIN_PASSWORD="$(cat /run/secrets/keycloak_bootstrap_admin_
 export KEYCLOAK_GOOGLE_CLIENT_ID="$(cat /run/secrets/keycloak_google_client_id)"
 export KEYCLOAK_GOOGLE_CLIENT_SECRET="$(cat /run/secrets/keycloak_google_client_secret)"
 
-exec /opt/keycloak/bin/kc.sh start --import-realm
+/opt/keycloak/bin/kc.sh import --dir /opt/keycloak/data/import --override true
+
+exec /opt/keycloak/bin/kc.sh start

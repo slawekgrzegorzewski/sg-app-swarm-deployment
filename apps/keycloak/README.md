@@ -4,17 +4,19 @@ Keycloak is the source of users, authentication, and authorization metadata
 for the applications in this cluster. It is available at
 `https://auth.grzegorzewski.pl` and uses the `sg` realm.
 
-The initial realm is imported only when it does not yet exist. This protects
-accounts and configuration changed through the admin console during later
-deployments. Treat [`../configs/application/sg-realm.json`](../configs/application/sg-realm.json)
-as the bootstrap definition, not as a mechanism for overwriting a live realm.
+The `sg` and `sg-test` realm definitions in
+[`../configs/application/sg-realm.json`](../configs/application/sg-realm.json)
+and [`../configs/application/sg-test-realm.json`](../configs/application/sg-test-realm.json)
+are imported with override enabled whenever the Keycloak task starts. Changes
+to these files are therefore applied on deployment. The import replaces the
+existing realm configuration and can replace data managed through the Admin
+Console, including accounts. Back up the Keycloak database before changing
+these definitions or restarting Keycloak.
 
 The `sg-test` realm has the same roles, groups, and OIDC clients, with the
 `sg-frontend` client restricted to `http://localhost:3000/*` for local frontend
 development. Its issuer is
-`https://auth.grzegorzewski.pl/realms/sg-test`. It is imported on Keycloak
-startup only if `sg-test` does not already exist; changes to the JSON do not
-update an existing realm.
+`https://auth.grzegorzewski.pl/realms/sg-test`.
 
 Both bootstrap realm definitions include Google as an identity provider. Add
 `keycloak_google_client_id` and `keycloak_google_client_secret` to the
@@ -27,11 +29,7 @@ https://auth.grzegorzewski.pl/realms/sg-test/broker/google/endpoint
 ```
 
 The Google credentials are read from Docker secrets by the Keycloak startup
-script and substituted into the realm import. Startup import skips realms that
-already exist, so adding this configuration to the existing `sg` realm
-requires creating/updating its Google identity provider once through the Admin
-Console or Admin REST API. The `sg-test` realm receives Google on its first
-import; an existing `sg-test` realm also needs that one-time update.
+script and substituted into each realm import.
 
 ## Authorization model
 
