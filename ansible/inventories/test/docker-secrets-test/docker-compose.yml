@@ -18,6 +18,8 @@ services:
       - jwt_secret_code
       - keycloak_db_password
       - keycloak_bootstrap_admin_password
+      - keycloak_google_client_id
+      - keycloak_google_client_secret
       - sendgrid_api_key
       - nordigen_secret_id
       - nordigen_secret_key
@@ -60,6 +62,10 @@ secrets:
   keycloak_db_password:
     external: true
   keycloak_bootstrap_admin_password:
+    external: true
+  keycloak_google_client_id:
+    external: true
+  keycloak_google_client_secret:
     external: true
   sendgrid_api_key:
     external: true

@@ -16,6 +16,23 @@ development. Its issuer is
 startup only if `sg-test` does not already exist; changes to the JSON do not
 update an existing realm.
 
+Both bootstrap realm definitions include Google as an identity provider. Add
+`keycloak_google_client_id` and `keycloak_google_client_secret` to the
+`SG App secrets` 1Password item before deploying. Register these authorized
+redirect URIs in the Google OAuth client:
+
+```text
+https://auth.grzegorzewski.pl/realms/sg/broker/google/endpoint
+https://auth.grzegorzewski.pl/realms/sg-test/broker/google/endpoint
+```
+
+The Google credentials are read from Docker secrets by the Keycloak startup
+script and substituted into the realm import. Startup import skips realms that
+already exist, so adding this configuration to the existing `sg` realm
+requires creating/updating its Google identity provider once through the Admin
+Console or Admin REST API. The `sg-test` realm receives Google on its first
+import; an existing `sg-test` realm also needs that one-time update.
+
 ## Authorization model
 
 The `groups` claim is the source of a user's scoped permissions. Create groups
@@ -62,6 +79,8 @@ the Docker-secrets playbook:
 | --- | --- |
 | `keycloak_db_password` | password of the PostgreSQL role `keycloak` |
 | `keycloak_bootstrap_admin_password` | one-time bootstrap administrator password |
+| `keycloak_google_client_id` | Google OAuth web client ID |
+| `keycloak_google_client_secret` | Google OAuth web client secret |
 
 The database initializer creates the `keycloak` role and database
 idempotently. PostgreSQL's scheduled backup already includes that database and

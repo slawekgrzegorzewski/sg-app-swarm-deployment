@@ -13,6 +13,10 @@ docker_swarm_secrets:
     reference: op://Private/SG App secrets/keycloak_db_password
   - name: keycloak_bootstrap_admin_password
     reference: op://Private/SG App secrets/keycloak_bootstrap_admin_password
+  - name: keycloak_google_client_id
+    reference: op://Private/SG App secrets/keycloak_google_client_id
+  - name: keycloak_google_client_secret
+    reference: op://Private/SG App secrets/keycloak_google_client_secret
   - name: sendgrid_api_key
     reference: op://Private/SG App secrets/sendgrid_api_key
   - name: nordigen_secret_id
