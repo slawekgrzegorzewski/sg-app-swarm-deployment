@@ -1,4 +1,10 @@
 spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://auth.grzegorzewski.pl/realms/sg
+          audience: sg-api
   flyway:
     enabled: true
     clean-disabled: true
