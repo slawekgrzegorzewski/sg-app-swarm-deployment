@@ -133,6 +133,7 @@ services:
       - keycloak_bootstrap_admin_password
       - keycloak_google_client_id
       - keycloak_google_client_secret
+      - brevo_smtp_password
     networks:
       - application_network
     logging:

@@ -31,6 +31,16 @@ https://auth.grzegorzewski.pl/realms/sg-test/broker/google/endpoint
 The Google credentials are read from Docker secrets by the Keycloak startup
 script and substituted into each realm import.
 
+Both realms use Brevo SMTP for verification and password-reset emails. The
+`brevo_smtp_password` Docker secret must contain a Brevo SMTP key (not a Brevo
+API key); Keycloak reads it at startup and substitutes it into the realm
+configuration. The configured sender `noreply@grzegorzewski.pl` must be
+verified in Brevo, and the domain should be authenticated there for reliable
+delivery. `verifyEmail` is enabled in both realms. Public self-registration
+remains disabled in the `sg` realm; administrators can require verification
+for managed accounts, and the verification action will be applied during
+login as appropriate.
+
 ## Authorization model
 
 The `groups` claim is the source of a user's scoped permissions. Create groups
@@ -79,6 +89,7 @@ the Docker-secrets playbook:
 | `keycloak_bootstrap_admin_password` | one-time bootstrap administrator password |
 | `keycloak_google_client_id` | Google OAuth web client ID |
 | `keycloak_google_client_secret` | Google OAuth web client secret |
+| `brevo_smtp_password` | Brevo SMTP key used by Keycloak and Spring services |
 
 The database initializer creates the `keycloak` role and database
 idempotently. PostgreSQL's scheduled backup already includes that database and
