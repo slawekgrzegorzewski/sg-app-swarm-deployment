@@ -356,6 +356,8 @@ The first restore command replaces all databases and global objects from the
 archive. Passing `--database <name>` replaces only that database and leaves
 global roles untouched; the database owner role must already exist. Stop the
 `application` stack before either restore operation.
+The restore task runs on the manager, where the backup transfer job stores the
+archives, and connects to PostgreSQL over the Swarm overlay network.
 
 Tagi obrazów aplikacji są przechowywane na managerze w
 `/srv/cluster/image-tags.env`, poza katalogami release'ów. Dzięki temu kolejne

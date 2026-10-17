@@ -49,10 +49,18 @@ if [[ -n "$restore_database" && ! "$restore_database" =~ ^[A-Za-z0-9_-]+$ ]]; th
 fi
 
 cluster_root="${CLUSTER_ROOT:-/srv/cluster}"
+archive_path="$cluster_root/backups/postgres/$archive_name"
+if [[ ! -s "$archive_path" || ! -r "$archive_path" ]]; then
+  echo "Backup archive does not exist, is empty, or is unreadable: $archive_path" >&2
+  exit 1
+fi
+
 release_directory="$(readlink -f -- "$cluster_root/current")"
 release_id="$(basename -- "$release_directory")"
 restore_config="postgres_restore_script_${release_id:0:12}"
 service_name="postgres-restore-$(date -u +%Y%m%d%H%M%S)"
+restore_uid="$(id -u)"
+restore_gid="$(id -g)"
 
 if ! docker config inspect "$restore_config" >/dev/null 2>&1; then
   echo "Docker config $restore_config is missing; deploy the database stack from this release first." >&2
@@ -82,12 +90,12 @@ trap cleanup EXIT
 
 docker service create \
   --name "$service_name" \
-  --constraint 'node.labels.workload.postgres==true' \
+  --constraint 'node.role==manager' \
   --network application_network \
   --restart-condition none \
-  --user 1000:1000 \
+  --user "$restore_uid:$restore_gid" \
   --secret source=postgres_password,target=postgres_password \
-  --config source="$restore_config",target=/usr/local/bin/restore-data,uid=1000,gid=1000,mode=0550 \
+  --config source="$restore_config",target=/usr/local/bin/restore-data,uid="$restore_uid",gid="$restore_gid",mode=0550 \
   --mount type=bind,source="$cluster_root/backups/postgres",target=/backups,readonly \
   --env "BACKUP_ARCHIVE=/backups/$archive_name" \
   --env "RESTORE_DATABASE=$restore_database" \
@@ -95,7 +103,8 @@ docker service create \
   postgres:18.4 \
   /usr/local/bin/restore-data >/dev/null
 
-for _ in $(seq 1 300); do
+echo "Restore service started: $service_name"
+for attempt in $(seq 1 300); do
   task_state="$(docker service ps "$service_name" --no-trunc --format '{{.CurrentState}}' | head -n 1)"
   case "$task_state" in
     Complete*) break ;;
@@ -105,6 +114,10 @@ for _ in $(seq 1 300); do
       exit 1
       ;;
   esac
+  if (( attempt % 15 == 0 )); then
+    echo "Restore still running; latest task state: ${task_state:-not scheduled yet}"
+    docker service ps --no-trunc "$service_name" || true
+  fi
   sleep 2
 done
 
