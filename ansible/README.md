@@ -348,7 +348,14 @@ Polecenia managera:
 /srv/cluster/current/tools/set-image-tag.sh tapo <image-tag>
 /srv/cluster/current/tools/restore-postgres.sh \
   postgres-YYYY-MM-DDTHH-MM-SSZ.tar.gz
+/srv/cluster/current/tools/restore-postgres.sh \
+  --database keycloak postgres-YYYY-MM-DDTHH-MM-SSZ.tar.gz
 ```
+
+The first restore command replaces all databases and global objects from the
+archive. Passing `--database <name>` replaces only that database and leaves
+global roles untouched; the database owner role must already exist. Stop the
+`application` stack before either restore operation.
 
 Tagi obrazów aplikacji są przechowywane na managerze w
 `/srv/cluster/image-tags.env`, poza katalogami release'ów. Dzięki temu kolejne

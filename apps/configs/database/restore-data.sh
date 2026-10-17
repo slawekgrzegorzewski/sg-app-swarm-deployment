@@ -13,6 +13,12 @@ trap 'rm -rf -- "$restore_directory"' EXIT
 tar -tzf "$backup_archive" >/dev/null
 tar -xzf "$backup_archive" -C "$restore_directory"
 
+restore_database="${RESTORE_DATABASE:-}"
+if [[ -n "$restore_database" && ! "$restore_database" =~ ^[A-Za-z0-9_-]+$ ]]; then
+  echo "Invalid database name: $restore_database" >&2
+  exit 2
+fi
+
 export PGPASSWORD
 PGPASSWORD="$(cat /run/secrets/postgres_password)"
 export PGHOST="${DATABASE_HOST:-database_postgres}"
@@ -23,18 +29,14 @@ until pg_isready --dbname=postgres >/dev/null 2>&1; do
   sleep 2
 done
 
-globals_restore_log="$restore_directory/config/globals-restore.log"
-psql --dbname=postgres --set=ON_ERROR_STOP=0 \
-  < "$restore_directory/globals.sql" > "$globals_restore_log" 2>&1
+if [[ -n "$restore_database" ]]; then
+  dump_file="$restore_directory/databases/${restore_database}.dump"
+  if [[ ! -s "$dump_file" ]]; then
+    echo "Database '$restore_database' is not present in backup: $backup_archive" >&2
+    exit 1
+  fi
 
-if grep -q '^ERROR:' "$globals_restore_log"; then
-  echo 'WARNING: some global objects already existed or could not be restored.' >&2
-  cat "$globals_restore_log" >&2
-fi
-
-while IFS= read -r dump_file; do
-  database_name="$(basename "$dump_file" .dump)"
-  echo "Restoring database: $database_name"
+  echo "Restoring database only: $restore_database"
   pg_restore \
     --clean \
     --if-exists \
@@ -42,6 +44,27 @@ while IFS= read -r dump_file; do
     --exit-on-error \
     --dbname=template1 \
     "$dump_file"
-done < <(find "$restore_directory/databases" -maxdepth 1 -type f -name '*.dump' -print | sort)
+else
+  globals_restore_log="$restore_directory/config/globals-restore.log"
+  psql --dbname=postgres --set=ON_ERROR_STOP=0 \
+    < "$restore_directory/globals.sql" > "$globals_restore_log" 2>&1
+
+  if grep -q '^ERROR:' "$globals_restore_log"; then
+    echo 'WARNING: some global objects already existed or could not be restored.' >&2
+    cat "$globals_restore_log" >&2
+  fi
+
+  while IFS= read -r dump_file; do
+    database_name="$(basename "$dump_file" .dump)"
+    echo "Restoring database: $database_name"
+    pg_restore \
+      --clean \
+      --if-exists \
+      --create \
+      --exit-on-error \
+      --dbname=template1 \
+      "$dump_file"
+  done < <(find "$restore_directory/databases" -maxdepth 1 -type f -name '*.dump' -print | sort)
+fi
 
 echo 'Restore completed.'

@@ -1,14 +1,50 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-if [[ "$#" -ne 1 ]]; then
-  echo "Usage: $(basename "$0") postgres-YYYY-MM-DDTHH-MM-SSZ.tar.gz" >&2
+usage() {
+  echo "Usage: $(basename "$0") [--database DATABASE] postgres-YYYY-MM-DDTHH-MM-SSZ.tar.gz" >&2
   exit 2
-fi
+}
 
-archive_name="$1"
+restore_database=""
+database_option_seen=false
+archive_name=""
+while (($#)); do
+  case "$1" in
+    --database)
+      (($# >= 2)) || usage
+      [[ "$database_option_seen" == false ]] || usage
+      database_option_seen=true
+      restore_database="$2"
+      shift 2
+      ;;
+    --database=*)
+      [[ "$database_option_seen" == false ]] || usage
+      database_option_seen=true
+      restore_database="${1#*=}"
+      shift
+      ;;
+    -* )
+      usage
+      ;;
+    *)
+      [[ -z "$archive_name" ]] || usage
+      archive_name="$1"
+      shift
+      ;;
+  esac
+done
+
+[[ -n "$archive_name" ]] || usage
+if [[ "$database_option_seen" == true && -z "$restore_database" ]]; then
+  usage
+fi
 if [[ "$archive_name" != "$(basename -- "$archive_name")" || ! "$archive_name" =~ ^postgres-[A-Za-z0-9_.-]+\.tar\.gz$ ]]; then
   echo "Provide a backup filename from /srv/cluster/backups/postgres, not a path." >&2
+  exit 2
+fi
+if [[ -n "$restore_database" && ! "$restore_database" =~ ^[A-Za-z0-9_-]+$ ]]; then
+  echo "Invalid database name: $restore_database" >&2
   exit 2
 fi
 
@@ -29,7 +65,11 @@ if docker stack ls --format '{{.Name}}' | grep -Fxq application; then
   exit 1
 fi
 
-read -r -p "Type RESTORE to replace all databases from $archive_name: " confirmation
+if [[ -n "$restore_database" ]]; then
+  read -r -p "Type RESTORE to replace only database '$restore_database' from $archive_name: " confirmation
+else
+  read -r -p "Type RESTORE to replace all databases from $archive_name: " confirmation
+fi
 if [[ "$confirmation" != RESTORE ]]; then
   echo 'Restore cancelled.'
   exit 1
@@ -50,6 +90,7 @@ docker service create \
   --config source="$restore_config",target=/usr/local/bin/restore-data,uid=1000,gid=1000,mode=0550 \
   --mount type=bind,source="$cluster_root/backups/postgres",target=/backups,readonly \
   --env "BACKUP_ARCHIVE=/backups/$archive_name" \
+  --env "RESTORE_DATABASE=$restore_database" \
   --entrypoint /bin/bash \
   postgres:18.4 \
   /usr/local/bin/restore-data >/dev/null
