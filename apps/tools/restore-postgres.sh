@@ -88,8 +88,10 @@ cleanup() {
 }
 trap cleanup EXIT
 
+echo "Creating restore service: $service_name"
 docker service create \
   --name "$service_name" \
+  --detach=true \
   --constraint 'node.role==manager' \
   --network application_network \
   --restart-condition none \
@@ -105,7 +107,8 @@ docker service create \
 
 echo "Restore service started: $service_name"
 for attempt in $(seq 1 300); do
-  task_state="$(docker service ps "$service_name" --no-trunc --format '{{.CurrentState}}' | head -n 1)"
+  task_states="$(docker service ps "$service_name" --no-trunc --format '{{.CurrentState}}')"
+  task_state="${task_states%%$'\n'*}"
   case "$task_state" in
     Complete*) break ;;
     Failed*|Rejected*)
