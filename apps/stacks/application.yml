@@ -11,6 +11,57 @@ x-syslog-logging: &syslog_logging
   options: *syslog_options
 
 services:
+  vaultwarden:
+    image: vaultwarden/server:1.37.5
+    user: '1000:1000'
+    environment:
+      DOMAIN: https://vault.grzegorzewski.pl
+      ROCKET_PORT: '8080'
+      SIGNUPS_ALLOWED: 'false'
+      INVITATIONS_ALLOWED: 'true'
+      ADMIN_TOKEN_FILE: /run/secrets/vaultwarden_admin_token
+      SMTP_HOST: smtp-relay.brevo.com
+      SMTP_PORT: '587'
+      SMTP_SECURITY: starttls
+      SMTP_USERNAME: af0e36001@smtp-brevo.com
+      SMTP_FROM: noreply@grzegorzewski.pl
+      SMTP_FROM_NAME: Vaultwarden
+      SMTP_PASSWORD_FILE: /run/secrets/brevo_smtp_password
+      TZ: Europe/Warsaw
+    secrets:
+      - source: vaultwarden_admin_token
+        uid: '1000'
+        gid: '1000'
+        mode: 0400
+      - source: brevo_smtp_password
+        uid: '1000'
+        gid: '1000'
+        mode: 0400
+    volumes:
+      - type: bind
+        source: /srv/cluster/data/vaultwarden
+        target: /data
+    networks:
+      - application_network
+    logging:
+      <<: *syslog_logging
+      options:
+        <<: *syslog_options
+        tag: application_vaultwarden
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.workload.vaultwarden == true
+      resources:
+        limits:
+          memory: 512M
+      update_config:
+        order: stop-first
+        failure_action: rollback
+      rollback_config:
+        order: stop-first
+
   frontend:
     image: public.registry.grzegorzewski.pl/frontend:${FRONTEND_IMAGE_TAG:-latest}
     networks:
@@ -210,6 +261,8 @@ configs:
     name: keycloak_test_realm_${CONFIG_VERSION:-0}
 
 secrets:
+  vaultwarden_admin_token:
+    external: true
   jwt_secret_code:
     external: true
   keycloak_db_password:

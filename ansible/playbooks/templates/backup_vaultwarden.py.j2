@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+import datetime
+import fcntl
+import os
+from pathlib import Path
+import sqlite3
+import tarfile
+import tempfile
+
+
+def backup(data_directory, backup_directory):
+    database = data_directory / 'db.sqlite3'
+    if not database.is_file():
+        raise FileNotFoundError(f'Vaultwarden database not found: {database}')
+
+    timestamp = datetime.datetime.now(datetime.timezone.utc).strftime(
+        '%Y%m%dT%H%M%SZ'
+    )
+    destination = backup_directory / f'vaultwarden-{timestamp}.tar.gz'
+    if destination.exists():
+        raise FileExistsError(destination)
+
+    with tempfile.TemporaryDirectory(
+        prefix='.vaultwarden-', dir=backup_directory
+    ) as temporary:
+        temporary_directory = Path(temporary)
+        database_backup = temporary_directory / 'db.sqlite3'
+        with sqlite3.connect(database.as_uri() + '?mode=ro', uri=True) as source:
+            with sqlite3.connect(database_backup) as target:
+                source.backup(target)
+                result = target.execute('PRAGMA integrity_check').fetchall()
+                if result != [('ok',)]:
+                    raise RuntimeError(f'SQLite integrity check failed: {result}')
+
+        archive_path = temporary_directory / 'backup.tar.gz'
+        with tarfile.open(archive_path, 'w:gz') as archive:
+            archive.add(database_backup, arcname='db.sqlite3')
+            for path in sorted(data_directory.iterdir()):
+                if path.name not in {
+                    'db.sqlite3', 'db.sqlite3-wal', 'db.sqlite3-shm',
+                    'icon_cache', 'tmp',
+                }:
+                    archive.add(path, arcname=path.name)
+
+        with tarfile.open(archive_path, 'r:gz') as archive:
+            for member in archive:
+                if member.isfile():
+                    with archive.extractfile(member) as content:
+                        while content.read(1024 * 1024):
+                            pass
+        os.chmod(archive_path, 0o600)
+        os.replace(archive_path, destination)
+    print(f'Created verified Vaultwarden backup: {destination}')
+
+
+if __name__ == '__main__':
+    if os.geteuid() != 0:
+        raise SystemExit('Run this script as root.')
+    os.umask(0o077)
+    with open('/run/lock/backup-vaultwarden.lock', 'w') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        backup(
+            Path('{{ cluster_root }}/data/vaultwarden'),
+            Path('{{ cluster_root }}/backups/vaultwarden'),
+        )

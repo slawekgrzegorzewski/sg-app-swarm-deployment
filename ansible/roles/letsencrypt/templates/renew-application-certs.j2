@@ -31,6 +31,7 @@ certbot_args=(
   --email '{{ letsencrypt_email }}'
   --cert-name '{{ letsencrypt_cert_name }}'
   --keep-until-expiring
+  --expand
   --config-dir '{{ letsencrypt_config_directory }}'
   --work-dir '{{ letsencrypt_work_directory }}'
   --logs-dir '{{ letsencrypt_logs_directory }}'

@@ -17,6 +17,7 @@
         name:
           - cron
           - rsync
+          - python3
         state: present
 
     - name: Enable cron scheduler
@@ -24,6 +25,23 @@
         name: cron
         enabled: true
         state: started
+
+    - name: Install Vaultwarden backup script
+      ansible.builtin.template:
+        src: backup_vaultwarden.py.j2
+        dest: "{{ cluster_root }}/bin/backup-vaultwarden"
+        owner: root
+        group: root
+        mode: '0700'
+      when: inventory_hostname in groups.get('vaultwarden_nodes', [])
+
+    - name: Schedule hourly Vaultwarden backup
+      ansible.builtin.cron:
+        name: Backup Vaultwarden data
+        user: root
+        minute: '15'
+        job: "{{ cluster_root }}/bin/backup-vaultwarden"
+      when: inventory_hostname in groups.get('vaultwarden_nodes', [])
 
     - name: Create Grafana backup directory
       ansible.builtin.file:

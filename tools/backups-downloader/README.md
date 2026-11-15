@@ -1,9 +1,11 @@
 # Backups downloader
 
-Kontener pobiera z managera Swarma backupy PostgreSQL oraz Grafany do lokalnego
+Kontener pobiera z managera Swarma backupy PostgreSQL, Grafany i Vaultwarden do lokalnego
 katalogu, weryfikuje każdą kopię przez SHA-256 i usuwa zdalny plik dopiero po
 potwierdzeniu zgodności sum kontrolnych. Backup Grafany jest odczytywany przez
 `sudo` na managerze, ponieważ katalog jest dostępny tylko dla roota.
+Tak samo pobierane są archiwa Vaultwarden; lokalny katalog `VAULTWARDEN`
+ma prawa 0700, a nowe pliki 0600.
 
 Lokalny katalog może zawierać `.ssh` z kluczem prywatnym. Gdy logowanie hasłem
 lub `sudo` go wymagają, dodaj plik `ssh_pass` z jednym hasłem. Plik nie jest
@@ -38,6 +40,7 @@ Po zakończeniu pliki znajdą się w:
 ```text
 POSTGRES/postgres-*.tar.gz
 GRAFANA/grafana-*.db
+VAULTWARDEN/vaultwarden-*.tar.gz
 ```
 
 Domyślny manager to `slawek@192.168.20.2`. Adres, użytkownika, port i katalog

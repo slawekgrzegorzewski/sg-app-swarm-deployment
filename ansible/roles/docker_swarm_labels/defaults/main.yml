@@ -1,5 +1,7 @@
 ---
 docker_swarm_node_labels:
+  - label: workload.vaultwarden
+    inventory_group: vaultwarden_nodes
   - label: workload.postgres
     inventory_group: postgres_nodes
   - label: workload.registry

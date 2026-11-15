@@ -1,6 +1,7 @@
 HELP.md
 .gradle
 build/
+__pycache__/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**
 !**/src/test/**

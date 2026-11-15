@@ -12,15 +12,18 @@
   ansible.builtin.assert:
     that:
       - groups.get('postgres_nodes', []) | length == 1
+      - groups.get('vaultwarden_nodes', []) | length == 1
+      - (groups.get('vaultwarden_nodes', []) | difference(groups.get('swarm_managers', []))) | length == 0
       - groups.get('registry_nodes', []) | length == 1
       - groups.get('gateway_nodes', []) | length == 1
       - groups.get('letsencrypt_hosts', []) | length == 1
       - (groups.get('letsencrypt_hosts', []) | difference(groups.get('gateway_nodes', []))) | length == 0
       - (groups.get('letsencrypt_hosts', []) | difference(groups.get('swarm_managers', []))) | length == 0
     fail_msg: >-
-      Configure exactly one postgres, registry, gateway, and Let's Encrypt
+      Configure exactly one postgres, vaultwarden, registry, gateway, and Let's Encrypt
       host. The gateway and Let's Encrypt groups must contain the same Swarm
       manager because their bind-mounted HTTP-01 files are node-local.
+      Vaultwarden must run on a manager for the manager-local backup downloader.
   run_once: true
 
 - name: Validate that workload hosts are bootstrapped

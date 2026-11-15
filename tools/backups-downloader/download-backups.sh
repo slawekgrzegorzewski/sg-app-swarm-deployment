@@ -14,6 +14,7 @@ readonly AWS_S3_BUCKET="${AWS_S3_BUCKET:-intellectualpropertytask}"
 
 readonly POSTGRES_DIRECTORY="$LOCAL_ROOT/POSTGRES"
 readonly GRAFANA_DIRECTORY="$LOCAL_ROOT/GRAFANA"
+readonly VAULTWARDEN_DIRECTORY="$LOCAL_ROOT/VAULTWARDEN"
 readonly REMOTE_TARGET="$REMOTE_USER@$REMOTE_HOST"
 
 declare -a SSH_COMMAND=(
@@ -53,7 +54,8 @@ validate_configuration() {
     log "SSH password file not found; using the SSH key mounted in $LOCAL_ROOT/.ssh."
   fi
 
-  mkdir -p -- "$POSTGRES_DIRECTORY" "$GRAFANA_DIRECTORY"
+  mkdir -p -- "$POSTGRES_DIRECTORY" "$GRAFANA_DIRECTORY" "$VAULTWARDEN_DIRECTORY"
+  chmod 0700 "$VAULTWARDEN_DIRECTORY"
   mkdir -p -- "$(dirname -- "$KNOWN_HOSTS_FILE")"
   touch "$KNOWN_HOSTS_FILE"
 }
@@ -201,6 +203,12 @@ main() {
     grafana "$REMOTE_BACKUP_ROOT/grafana" 'grafana-*.db' \
     '^grafana-[0-9]{8}T[0-9]{6}Z\.db$' \
     "$GRAFANA_DIRECTORY" true
+
+  log "Downloading Vaultwarden backups from $REMOTE_TARGET"
+  sync_source \
+    vaultwarden "$REMOTE_BACKUP_ROOT/vaultwarden" 'vaultwarden-*.tar.gz' \
+    '^vaultwarden-[0-9]{8}T[0-9]{6}Z\.tar\.gz$' \
+    "$VAULTWARDEN_DIRECTORY" true
 
   sync_s3
   log 'Backup download completed.'

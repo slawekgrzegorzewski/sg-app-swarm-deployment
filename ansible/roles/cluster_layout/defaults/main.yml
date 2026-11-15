@@ -29,6 +29,15 @@ cluster_layout_common_directories:
 # host directories. Moving a host between groups provisions the new node but
 # deliberately leaves data on the old node for explicit recovery or cleanup.
 cluster_layout_group_directories:
+  vaultwarden_nodes:
+    - path: "{{ cluster_root }}/data/vaultwarden"
+      owner: '1000'
+      group: '1000'
+      mode: '0700'
+    - path: "{{ cluster_root }}/backups/vaultwarden"
+      owner: root
+      group: root
+      mode: '0700'
   swarm_managers:
     - path: "{{ cluster_root }}/releases"
       owner: "{{ cluster_admin_user }}"

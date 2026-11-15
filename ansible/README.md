@@ -90,6 +90,7 @@ Grupy funkcjonalne są jedynym źródłem prawdy dla katalogów i placementu:
 | `registry_nodes` | `workload.registry=true` |
 | `gateway_nodes` | `workload.gateway=true` |
 | `application_nodes` | `workload.application=true` |
+| `vaultwarden_nodes` | `workload.vaultwarden=true` |
 | `observability_nodes` | `workload.observability=true` |
 | `letsencrypt_hosts` | `workload.letsencrypt=true` |
 

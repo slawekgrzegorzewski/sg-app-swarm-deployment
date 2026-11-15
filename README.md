@@ -6,6 +6,7 @@ Cały stan zarządzany przez projekt znajduje się na hostach pod
 
 - [Instrukcja Ansible](ansible/README.md)
 - [Źródła release'u](apps/README.md)
+- [Vaultwarden: wdrożenie i kopie zapasowe](docs/vaultwarden.md)
 
 Budowanie artefaktu:
 
