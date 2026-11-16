@@ -18,10 +18,10 @@ The `sg-test` realm has the same roles, groups, and OIDC clients, with the
 development. Its issuer is
 `https://auth.grzegorzewski.pl/realms/sg-test`.
 
-Both bootstrap realm definitions include Google as an identity provider. Add
-`keycloak_google_client_id` and `keycloak_google_client_secret` to the
-`SG App secrets` 1Password item before deploying. Register these authorized
-redirect URIs in the Google OAuth client:
+Oba startowe realmy zawierają Google jako dostawcę tożsamości. Przed wdrożeniem
+dodaj pola własne `keycloak_google_client_id` i `keycloak_google_client_secret`
+do wpisu `SG App secrets` w Vaultwarden, odczytywanego przez Bitwarden CLI.
+W kliencie Google OAuth zarejestruj następujące adresy przekierowań:
 
 ```text
 https://auth.grzegorzewski.pl/realms/sg/broker/google/endpoint
@@ -80,8 +80,8 @@ place until that application migration is deployed.
 
 ## Required secrets
 
-Add these two entries to the `SG App secrets` 1Password item before running
-the Docker-secrets playbook:
+Przed uruchomieniem playbooka sekretów dodaj poniższe pola własne do wpisu
+`SG App secrets` w Vaultwarden:
 
 | Secret | Purpose |
 | --- | --- |
@@ -99,9 +99,9 @@ MFA as appropriate, and then delete the temporary `bootstrap-admin` account.
 
 ## First deployment
 
-Point the DNS record for `auth.grzegorzewski.pl` at the gateway before renewing
-the certificate. Add the required 1Password fields, run the Docker-secrets
-playbook, and apply the Let's Encrypt role so the certificate contains the new
-hostname. A normal release deployment then starts the database initializer and
+Przed odnowieniem certyfikatu skieruj DNS `auth.grzegorzewski.pl` na gateway.
+Dodaj wymagane pola własne do wpisu w Vaultwarden, uruchom playbook sekretów
+z odblokowaną sesją Bitwarden CLI i zastosuj rolę Let's Encrypt, aby certyfikat
+obejmował nową nazwę hosta. A normal release deployment then starts the database initializer and
 Keycloak. After it is available, create the permanent administrator and add
 the domain and application groups needed by the applications.

@@ -45,8 +45,8 @@ Przeniesienie grupy na inny host wymaga osobnego przeniesienia danych.
    Dockera. Polecenie tworzy nowy sekret; nie nadpisuje istniejącego.
    Do panelu logujesz się oryginalnym tokenem, a Docker otrzymuje hash przez
    plik sekretu. `vaultwarden_admin_token` jest zarządzany ręcznie, poza listą
-   synchronizowaną z 1Password. Uruchomienie Vaultwarden nie wymaga dodawania
-   ani odczytywania danych w 1Password.
+   synchronizowaną z Bitwarden. Uruchomienie Vaultwarden nie wymaga dodawania
+   ani odczytywania danych w Bitwarden CLI.
 3. Przed pushem na `main` wykonaj z katalogu repozytorium provisioning:
 
    ```bash
@@ -60,7 +60,7 @@ Przeniesienie grupy na inny host wymaga osobnego przeniesienia danych.
    samo `05-letsencrypt.sh` nie wystawia certyfikatu od razu.
    Istniejący klaster ma już sekret `brevo_smtp_password`, używany także przez
    inne usługi. Nie uruchamiaj `06-docker-secrets.sh` na potrzeby tego wdrożenia:
-   ten wrapper synchronizuje pozostałe sekrety z 1Password. Przy instalacji
+   ten wrapper synchronizuje pozostałe sekrety z Bitwarden. Przy instalacji
    od zera potrzebne są również sekrety pozostałych usług.
 4. Wdróż release przez istniejący workflow `update cluster`. Nowa konfiguracja
    Nginx udostępni HTTP-01 dla nowej domeny oraz proxy HTTP/WebSocket.
@@ -120,6 +120,66 @@ Aby odtworzyć dane:
    usługę: `docker service scale application_vaultwarden=1`.
 5. Sprawdź logowanie, synchronizację i pobieranie załącznika. Podczas
    odtwarzania nie uruchamiaj workflow wdrożeniowego, który przywraca jedną replikę.
+
+### Próba odtworzenia na osobnej instancji
+
+Ćwiczenie wykonuj na kopii danych, poza usługą produkcyjną. Dzięki temu można
+sprawdzić rzeczywisty backup bez przestoju i bez cofania bieżących zapisów.
+
+1. Wybierz najnowsze archiwum na hoście usługi. Pobierz je bez usuwania
+   zdalnej kopii i porównaj SHA-256 obu plików. Downloader usuwa pobrane kopie
+   z serwera, dlatego do tej próby użyj osobnego odczytu przez SSH.
+2. Utwórz osobny katalog z prawami 0700 i rozpakuj archiwum do pustego
+   podkatalogu danych. Odrzuć wpisy archiwum wychodzące poza katalog docelowy
+   oraz dowiązania. Plikom nadaj prawa 0600. Sprawdź bazę przez
+   `PRAGMA integrity_check` i zapisz liczby użytkowników, wpisów, organizacji
+   oraz załączników, bez wypisywania ich treści.
+3. Zachowaj oryginalne archiwum. Wyłącznie w rozpakowanej kopii zastąp
+   `config.json` pustym obiektem `{}`, aby ustawienia produkcyjne nie
+   nadpisały konfiguracji testowej, w szczególności adresu serwera i poczty.
+4. Uruchom obraz w wersji używanej przy wykonaniu backupu, obecnie
+   `vaultwarden/server:1.37.5`, z osobnym katalogiem `/data`. Ustaw
+   `DOMAIN=https://localhost:19443`, `ROCKET_PORT=8080`,
+   `SIGNUPS_ALLOWED=false`, `INVITATIONS_ALLOWED=false` i
+   `PUSH_ENABLED=false`. Nie przekazuj sekretów produkcyjnych.
+5. Umieść Vaultwarden w osobnej sieci Docker z opcją `--internal`, bez innych
+   usług produkcyjnych. Dostęp z przeglądarki udostępnij przez oddzielne proxy
+   HTTPS podpięte do tej sieci i zwykłej sieci bridge, publikując port wyłącznie
+   jako `127.0.0.1:19443`. Proxy ma przekazywać żądania tylko do testowego
+   Vaultwardena. Takie rozwiązanie pozwala używać interfejsu także na wersjach
+   Dockera, które nie publikują portów kontenera w sieci wewnętrznej. Proxy
+   kończy TLS i przekazuje `X-Forwarded-Proto: https`. Certyfikat musi obejmować
+   `localhost` w SAN. Przy certyfikacie lokalnym zaakceptuj wyjątek wyłącznie
+   dla adresu próby w przeglądarce; nie zmieniaj globalnie weryfikacji TLS
+   klientów. Przed uruchomieniem sprawdź, czy wybrany port jest wolny.
+6. Sprawdź odpowiedź 200 przez HTTPS dla `/alive` i strony głównej oraz stan kontenera.
+   W przeglądarce zaloguj się kontem istniejącym w chwili backupu, z jego
+   hasłem głównym i wymaganym 2FA. Sprawdź odszyfrowanie kilku znanych wpisów,
+   dostęp do kolekcji organizacji i pobranie załącznika, jeśli są w kopii.
+   Konto, organizacja lub wpis utworzone później nie pojawią się w odtworzeniu.
+   Jeżeli konto używa 2FA przez e-mail, samo pominięcie konfiguracji SMTP
+   blokuje logowanie komunikatem „No enabled and usable two factor providers
+   are available for this account”. W izolowanej sieci uruchom lokalny SMTP,
+   np. MailHog, i skonfiguruj testowy Vaultwarden: `_enable_smtp=true`,
+   `_enable_email_2fa=true`, `smtp_host` wskazujący kontener skrzynki,
+   `smtp_port=1025`, `smtp_security=off` oraz testowy `smtp_from`.
+   Brak TLS jest dopuszczony tu wyłącznie w osobnej, lokalnej sieci ćwiczenia.
+   Udostępnij interfejs skrzynki tylko na loopback przez osobne proxy;
+   kod z wiadomości testowej przepisuje użytkownik. Nie wypisuj kodów
+   w raporcie ani logach weryfikacji. Ten wariant sprawdza zachowanie
+   odtworzonego konta z e-mailowym 2FA, ale nie potwierdza dostarczania
+   poczty przez Brevo ani dostępu do rzeczywistej skrzynki odbiorczej.
+7. Zapisz datę kopii, sumę kontrolną i wynik kontroli technicznej oraz ręcznej.
+   Brak organizacji lub załączników w kopii oznacza, że ich odtwarzania nie
+   sprawdzono. Sama odpowiedź `/alive` i poprawna baza nie potwierdzają
+   możliwości odszyfrowania sejfu.
+8. Po ćwiczeniu zatrzymaj i usuń wyłącznie kontenery oraz sieć próby. Usuń
+   rozpakowane dane po zakończeniu sprawdzania; oryginalny backup zachowaj
+   zgodnie z zasadami przechowywania kopii.
+
+Ta próba weryfikuje dane sejfu. Nie sprawdza odtworzenia hosta Swarm, DNS,
+certyfikatów, sekretów ani działania poczty produkcyjnej. Nie wyłączaj 2FA
+w kopii tylko po to, aby uznać ćwiczenie za zakończone.
 
 ## Weryfikacja zmian
 

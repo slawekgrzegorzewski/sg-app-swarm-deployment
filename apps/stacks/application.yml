@@ -107,6 +107,7 @@ services:
       - aws_pjm_lambda_function
       - aws_pjm_sns_topic_arn
       - random_org_api_key
+      - openai_api_key
       - brevo_smtp_password
     networks:
       - application_network
@@ -310,6 +311,8 @@ secrets:
   brevo_smtp_password:
     external: true
   random_org_api_key:
+    external: true
+  openai_api_key:
     external: true
   notification_email_to:
     external: true

@@ -22,12 +22,9 @@ Pełne przygotowanie nowego klastra:
 ./06-docker-secrets.sh home apply
 ```
 
-Jeżeli 1Password CLI ma dostęp do więcej niż jednego konta, wybierz konto
-jawnie przez `ONEPASSWORD_ACCOUNT`, np.:
-
-```bash
-ONEPASSWORD_ACCOUNT=twoj-account ./06-docker-secrets.sh home apply
-```
+Przed krokiem `06` skonfiguruj lokalne Bitwarden CLI dla Vaultwarden i odblokuj
+sejf. Instrukcję oraz mapowanie pól zawiera sekcja
+[Sekrety z lokalnego Bitwarden](#sekrety-z-lokalnego-bitwarden).
 
 Po kroku `05` i przed pierwszym wdrożeniem stacka `core` należy jednorazowo
 uzyskać rzeczywisty certyfikat na managerze poleceniem pokazanym w sekcji
@@ -154,9 +151,9 @@ globalne node-exporter i cAdvisor. Docker przekazuje logi usług przez swój
 wbudowany driver `syslog` do Alloy na managerze; na Raspberry Pi nie działa
 żaden collector Fluent Bit.
 
-Przed pierwszym wdrożeniem utwórz w 1Password pola
-`op://Private/SG App secrets/grafana_admin_password` i
-`op://Private/SG App secrets/portainer_admin_password`, a następnie wykonaj:
+Przed pierwszym wdrożeniem dodaj w Vaultwarden pola własne
+`grafana_admin_password` i `portainer_admin_password` do wpisu `SG App secrets`,
+a następnie wykonaj:
 
 ```bash
 ./02-docker-swarm.sh home apply
@@ -217,29 +214,102 @@ Jawnie destrukcyjny reset testowego Swarma:
 `docker_swarm_advertise_addr` musi być lokalnym adresem IP lub nazwą
 interfejsu. Inventory testowe używa adresów `192.168.56.x`.
 
-## Sekrety z lokalnego 1Password
+## Sekrety z lokalnego Bitwarden
 
-`06-docker-secrets.sh` uruchamia `op read` na komputerze z Ansible, nie na
-serwerze. Wartości są przesyłane do managera przez stdin i chronione przez
-`no_log`. Helper instalowany na managerze znajduje się pod
+`06-docker-secrets.sh` używa Bitwarden Password Manager CLI (`bw`), połączonego
+z Vaultwarden, na komputerze z Ansible. Manager nie wymaga klienta Bitwarden
+ani sesji sejfu. Wartości są przesyłane do managera przez stdin i chronione
+przez `no_log`. Helper managera pozostaje pod
 `/srv/cluster/bin/create-docker-secrets`.
 
-Przed zmianą rola sprawdza wszystkie serwisy Swarma. Sekret używany przez
-działającą usługę jest pomijany, aby można było nadal utworzyć inne, brakujące
-sekrety. Docker nie udostępnia wartości zapisanego sekretu, dlatego
-nieużywany istniejący sekret jest przy każdym `apply` tworzony ponownie.
+Źródłem jest jeden wpis `SG App secrets`, z sekretami w polach własnych
+(tekstowych lub ukrytych). Mapowanie `name` → `field` znajduje się w
+[`roles/docker_swarm_secrets/defaults/main.yml`](roles/docker_swarm_secrets/defaults/main.yml).
+Nazwy sekretów Dockera są zachowane. Przykładowo pole `htpasswd` tworzy
+`registry_htpasswd`, a pole `jwt_secret_code` tworzy `jwt_secret_code`.
+Migracja wpisu z 1Password wymaga zachowania nazw tych pól; skrypt nie kopiuje
+ani nie modyfikuje wpisów w sejfie.
 
-Na kontrolerze należy zainstalować i uwierzytelnić 1Password CLI. Sesję może
-zapewnić integracja z aplikacją desktopową, `op signin` albo ograniczony token
-service account:
+Domyślny `docker_swarm_secrets_bitwarden_item` zawiera UUID istniejącego wpisu
+`SG App secrets`: `62066329-6ceb-4337-8a1c-6fb6d7d8d62b`. Odczyt po UUID
+eliminuje niejednoznaczne dopasowania nazwy i nie wymaga argumentu `-e`.
+Edycja wpisu lub jego nazwy nie wymaga zmiany UUID. Usunięcie i ponowne
+utworzenie wpisu albo import jako nowej pozycji wymaga aktualizacji identyfikatora.
+Można go nadpisać w inventory lub dodatkową zmienną Ansible. Folder osobisty i kolekcja
+organizacji mogą zawierać wpis, o ile zalogowane konto ma do niego dostęp.
+
+Jeśli odczyt wpisu kończy się błędem, w terminalu z odblokowaną sesją wykonaj:
 
 ```bash
-export OP_SERVICE_ACCOUNT_TOKEN='...'
-./06-docker-secrets.sh home apply
+bw list items --search 'SG App secrets' | jq -r '.[] | [.id, .name] | @tsv'
 ```
 
-W WSL wrapper automatycznie znajduje Windowsowe `op.exe`, jeśli nie ma
-natywnego `op`. Zmienna `ONEPASSWORD_CLI` pozwala wskazać inną binarkę.
+Polecenie wypisuje wyłącznie UUID i nazwy, bez pól i wartości sekretów. Aby
+użyć innego wpisu niż domyślny, wskaż jego UUID:
+
+```bash
+./06-docker-secrets.sh home apply -e 'docker_swarm_secrets_bitwarden_item=UUID_WPISU'
+```
+
+Nie wypisuj pełnego wyniku `bw get item` do logów. Rola przechwytuje błąd CLI
+z `no_log` i pokazuje tylko rozpoznaną kategorię błędu, bez surowej odpowiedzi.
+
+Jednorazowa konfiguracja klienta (przed zalogowaniem):
+
+```bash
+bw config server https://vault.grzegorzewski.pl
+bw login
+```
+
+Odblokowanie i uruchomienie z katalogu `ansible`:
+
+```bash
+export BW_SESSION="$(bw unlock --raw)"
+./06-docker-secrets.sh home check
+./06-docker-secrets.sh home apply
+bw lock
+unset BW_SESSION
+```
+
+Hasło główne i 2FA podaje się interaktywnie w CLI. Sesja jest dziedziczona
+lokalnie przez `BW_SESSION`, bez umieszczania jej w argumentach poleceń,
+inventory i na serwerach. Nie uruchamiaj tego przepływu z włączonym śledzeniem
+poleceń powłoki ani debugowaniem CLI. Jeśli logujesz się przez API key,
+samo `bw login --apikey` nie odblokowuje sejfu — nadal potrzebne jest `bw unlock`.
+
+Wrapper wybiera `bw` z PATH, następnie `bw.exe`; w WSL potrafi znaleźć binarkę
+Windows przez PowerShell. `BITWARDEN_CLI` pozwala wskazać inną binarkę. Logowanie
+i odblokowanie wykonuj tym samym klientem i profilem co provisioning.
+Dla Windowsowego klienta wywoływanego z WSL wrapper przekazuje `BW_SESSION`
+przez `WSLENV`. Oddzielny lokalny profil można wybrać przez
+`BITWARDENCLI_APPDATA_DIR`, zgodnie z
+[dokumentacją Bitwarden CLI](https://bitwarden.com/help/cli/).
+
+Przed odczytem sejfu rola sprawdza serwisy Swarma. Sekret używany przez
+usługę jest pomijany. Gdy są sekrety do utworzenia lub aktualizacji, rola wymaga
+odblokowanej sesji, wykonuje `bw sync`, a następnie jeden `bw get item`.
+Przed pierwszą zmianą w Dockerze sprawdza wszystkie wymagane pola: każde musi
+istnieć dokładnie raz i mieć niepustą wartość tekstową. Brak lub duplikat pola
+przerywa wykonanie bez zmiany sekretów. Wartości wielowierszowe zachowujemy;
+`encoding: base64` nadal dekoduje pole przed wysłaniem do Dockera.
+
+Docker nie udostępnia wartości zapisanego sekretu, dlatego nieużywany
+istniejący sekret jest przy każdym `apply` tworzony ponownie. Sekrety usług
+aktywnych wymagają osobnej, świadomej rotacji. Tryb `check` sprawdza definicje,
+managera i obecność CLI, ale nie synchronizuje ani nie odczytuje sejfu i nie
+zmienia sekretów. Nie wymaga odblokowanej sesji.
+
+Stary `apps/application/secrets/setup_secrets.sh` jest wrapperem tego samego
+playbooka; przyjmuje te same argumenty `home|test` i `check|apply`. Nie usuwa już
+sekretów działających usług i nie tworzy sekretów z dosłownej treści referencji.
+
+Testy adaptera Bitwarden (atrapy CLI i managera, bez dostępu do sejfu):
+
+```bash
+python3 -m unittest discover -s tests -p test_bitwarden_secrets.py -v
+```
+
+Uruchamiaj je z katalogu głównego repozytorium. Wymagają Ansible i PyYAML.
 
 ### Testowy odczyt sekretów
 

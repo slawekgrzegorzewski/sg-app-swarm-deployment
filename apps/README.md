@@ -28,3 +28,9 @@ notes are in [`keycloak/README.md`](keycloak/README.md).
 
 The application stack also contains Keycloak. Its realm model and migration
 notes are in [`keycloak/README.md`](keycloak/README.md).
+
+## Ocena AI trenażera CROSS
+
+Integracja jest włączona w `configs/application/application.yml.tmpl`.
+Standardowy stack aplikacji montuje sekret `openai_api_key` wyłącznie w backendzie.
+[Aktywacja i kolejność wdrożenia](../docs/trenazer-cross-ai.md).

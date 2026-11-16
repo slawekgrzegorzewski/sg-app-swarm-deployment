@@ -17,11 +17,11 @@ jednym katalogu głównym: `/srv/cluster`.
 - certyfikaty są wersjonowanymi Docker Swarm secrets;
 - Certbot korzysta z trybu `standalone`, gdy gateway nie działa, oraz z
   `webroot`, gdy gateway jest uruchomiony;
-- sekrety są pobierane przez 1Password CLI zainstalowane na lokalnym
+- sekrety są pobierane przez Bitwarden CLI zainstalowane na lokalnym
   kontrolerze Ansible, a nie na serwerze;
 - istniejące, nieużywane przez żaden serwis sekrety mogą być aktualizowane;
-- `apps/application/secrets/setup_secrets.sh` został tylko przeniesiony, bez
-  modyfikowania jego treści;
+- `apps/application/secrets/setup_secrets.sh` deleguje do aktualnego playbooka
+  Ansible, zamiast samodzielnie usuwać i tworzyć sekrety;
 - aktualne nazwy plików i katalogów nie zawierają `sg`.
 
 Szczegółowa instrukcja znajduje się w [ansible/README.md](ansible/README.md),
@@ -54,8 +54,8 @@ Nie wykonano faktycznego wdrożenia na klaster ani `nginx -t`, ponieważ w
    ssh PC2 'sudo /srv/cluster/bin/renew-certificates --standalone'
    ```
 
-4. Upewnić się, że w 1Password istnieje pole
-   `op://Private/SG App secrets/htpasswd`.
+4. Upewnić się, że w Vaultwarden istnieje pole własne `htpasswd`
+   we wpisie `SG App secrets`, a lokalna sesja `bw` jest odblokowana.
 5. Utworzyć sekrety:
 
    ```bash

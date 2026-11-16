@@ -10,7 +10,7 @@
 - etykiety `workload.*` uzgadniane z inventory wraz z usuwaniem starych
   etykiet;
 - firewall UFW;
-- sekrety pobierane przez lokalne 1Password CLI;
+- sekrety pobierane przez lokalne Bitwarden CLI;
 - automatyczne odnawianie certyfikatu i rotacja wersjonowanych Swarm secrets;
 - niezmienne release'y instalowane wyłącznie na managerze.
 

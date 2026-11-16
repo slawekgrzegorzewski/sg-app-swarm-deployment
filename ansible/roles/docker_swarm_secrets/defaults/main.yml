@@ -1,75 +1,76 @@
 ---
 docker_swarm_secrets_script: "{{ cluster_root }}/bin/create-docker-secrets"
-docker_swarm_secrets_onepassword_cli: >-
-  {{ lookup('ansible.builtin.env', 'ONEPASSWORD_CLI') | default('op', true) }}
-docker_swarm_secrets_onepassword_account: >-
-  {{ lookup('ansible.builtin.env', 'ONEPASSWORD_ACCOUNT') | default('', true) }}
+docker_swarm_secrets_bitwarden_cli: >-
+  {{ lookup('ansible.builtin.env', 'BITWARDEN_CLI') | default('bw', true) }}
+docker_swarm_secrets_bitwarden_item: 62066329-6ceb-4337-8a1c-6fb6d7d8d62b
 docker_swarm_secrets:
   - name: registry_htpasswd
-    reference: op://Private/SG App secrets/htpasswd
+    field: htpasswd
   - name: jwt_secret_code
-    reference: op://Private/SG App secrets/jwt_secret_code
+    field: jwt_secret_code
   - name: keycloak_db_password
-    reference: op://Private/SG App secrets/keycloak_db_password
+    field: keycloak_db_password
   - name: keycloak_bootstrap_admin_password
-    reference: op://Private/SG App secrets/keycloak_bootstrap_admin_password
+    field: keycloak_bootstrap_admin_password
   - name: keycloak_google_client_id
-    reference: op://Private/SG App secrets/keycloak_google_client_id
+    field: keycloak_google_client_id
   - name: keycloak_google_client_secret
-    reference: op://Private/SG App secrets/keycloak_google_client_secret
+    field: keycloak_google_client_secret
   - name: sendgrid_api_key
-    reference: op://Private/SG App secrets/sendgrid_api_key
+    field: sendgrid_api_key
   - name: nordigen_secret_id
-    reference: op://Private/SG App secrets/nordigen_secret_id
+    field: nordigen_secret_id
   - name: nordigen_secret_key
-    reference: op://Private/SG App secrets/nordigen_secret_key
+    field: nordigen_secret_key
   - name: go_cardless_secret_id
-    reference: op://Private/SG App secrets/go_cardless_secret_id
+    field: go_cardless_secret_id
   - name: go_cardless_secret_key
-    reference: op://Private/SG App secrets/go_cardless_secret_key
+    field: go_cardless_secret_key
   - name: postgres_password
-    reference: op://Private/SG App secrets/postgres_password
+    field: postgres_password
   - name: accountant_db_password
-    reference: op://Private/SG App secrets/accountant_db_password
+    field: accountant_db_password
   - name: banks_db_password
-    reference: op://Private/SG App secrets/banks_db_password
+    field: banks_db_password
   - name: smart_home_db_host
-    reference: op://Private/SG App secrets/smart_home_db_host
+    field: smart_home_db_host
   - name: smart_home_db_password
-    reference: op://Private/SG App secrets/smart_home_db_password
+    field: smart_home_db_password
   - name: tapo_user
-    reference: op://Private/SG App secrets/tapo_user
+    field: tapo_user
   - name: tapo_password
-    reference: op://Private/SG App secrets/tapo_password
+    field: tapo_password
   - name: tapo_device_ip
-    reference: op://Private/SG App secrets/tapo_device_ip
+    field: tapo_device_ip
   - name: pjm_downloader_aws_access_key_id
-    reference: op://Private/SG App secrets/pjm_downloader_aws_access_key_id
+    field: pjm_downloader_aws_access_key_id
   - name: pjm_downloader_aws_secret_access_key
-    reference: op://Private/SG App secrets/pjm_downloader_aws_secret_access_key
+    field: pjm_downloader_aws_secret_access_key
   - name: intellectual_property_s3_aws_access_key_id
-    reference: op://Private/SG App secrets/intellectual_property_s3_aws_access_key_id
+    field: intellectual_property_s3_aws_access_key_id
   - name: intellectual_property_s3_aws_secret_access_key
-    reference: op://Private/SG App secrets/intellectual_property_s3_aws_secret_access_key
+    field: intellectual_property_s3_aws_secret_access_key
   - name: sns-client-access-key-id
-    reference: op://Private/SG App secrets/sns-client-access-key-id
+    field: sns-client-access-key-id
   - name: sns-client-access-key
-    reference: op://Private/SG App secrets/sns-client-access-key
+    field: sns-client-access-key
   - name: aws_region
-    reference: op://Private/SG App secrets/aws_region
+    field: aws_region
   - name: aws_pjm_lambda_function
-    reference: op://Private/SG App secrets/aws_pjm_lambda_function
+    field: aws_pjm_lambda_function
   - name: aws_pjm_sns_topic_arn
-    reference: op://Private/SG App secrets/aws_pjm_sns_topic_arn
+    field: aws_pjm_sns_topic_arn
   - name: aws_banks_sns_topic_arn
-    reference: op://Private/SG App secrets/aws_banks_sns_topic_arn
+    field: aws_banks_sns_topic_arn
   - name: random_org_api_key
-    reference: op://Private/SG App secrets/random_org_api_key
+    field: random_org_api_key
   - name: notification_email_to
-    reference: op://Private/SG App secrets/notification_email_to
+    field: notification_email_to
   - name: brevo_smtp_password
-    reference: op://Private/SG App secrets/brevo_smtp_password
+    field: brevo_smtp_password
   - name: grafana_admin_password
-    reference: op://Private/SG App secrets/grafana_admin_password
+    field: grafana_admin_password
   - name: portainer_admin_password
-    reference: op://Private/SG App secrets/portainer_admin_password
+    field: portainer_admin_password
+  - name: openai_api_key
+    field: openai_api_key

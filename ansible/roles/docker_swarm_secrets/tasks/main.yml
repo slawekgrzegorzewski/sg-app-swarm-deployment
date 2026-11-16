@@ -1,10 +1,20 @@
 ---
+- name: Validate Bitwarden item and unique Docker secret names
+  ansible.builtin.assert:
+    that:
+      - docker_swarm_secrets_bitwarden_item is string
+      - docker_swarm_secrets_bitwarden_item | length > 0
+      - docker_swarm_secrets | map(attribute='name') | unique | length == docker_swarm_secrets | length
+    fail_msg: "Configure one Bitwarden item name or UUID and unique Docker secret names."
+    quiet: true
+
 - name: Validate Docker Swarm secret definitions
   ansible.builtin.assert:
     that:
       - docker_swarm_secrets | length > 0
       - item.name is match('^[a-zA-Z0-9][a-zA-Z0-9_.-]*$')
-      - item.reference is match('^op://')
+      - item.field is string
+      - item.field | length > 0
       - item.encoding | default('plain') in ['plain', 'base64']
     fail_msg: "Invalid Docker Swarm secret definition: {{ item }}"
   loop: "{{ docker_swarm_secrets }}"
@@ -19,10 +29,10 @@
   check_mode: false
   failed_when: docker_swarm_secrets_manager_state.stdout | trim != 'true'
 
-- name: Verify that the 1Password CLI is installed on the Ansible controller
+- name: Verify that the Bitwarden CLI is installed on the Ansible controller
   ansible.builtin.command:
     argv:
-      - "{{ docker_swarm_secrets_onepassword_cli }}"
+      - "{{ docker_swarm_secrets_bitwarden_cli }}"
       - --version
   delegate_to: localhost
   become: false
@@ -50,7 +60,7 @@
   ansible.builtin.debug:
     msg: >-
       Docker Swarm secret usage is not checked and secrets are not read from
-      1Password or changed in check mode.
+      Bitwarden or changed in check mode.
   when: ansible_check_mode
 
 - name: Select managed secrets that can be safely created or updated
@@ -73,30 +83,122 @@
     - not ansible_check_mode
     - docker_swarm_secrets_eligible.stderr | length > 0
 
-- name: Read Docker Swarm secrets from 1Password on the Ansible controller
+- name: Verify that the local Bitwarden vault is unlocked
   ansible.builtin.command:
-    argv: >-
-      {{
-        [docker_swarm_secrets_onepassword_cli, 'read']
-        + (
-          ['--account', docker_swarm_secrets_onepassword_account]
-          if docker_swarm_secrets_onepassword_account | length > 0
-          else []
-        )
-        + [item.reference]
-      }}
+    argv:
+      - "{{ docker_swarm_secrets_bitwarden_cli }}"
+      - status
+      - --nointeraction
   delegate_to: localhost
   become: false
+  register: docker_swarm_secrets_bitwarden_status
+  changed_when: false
+  no_log: true
+  when:
+    - not ansible_check_mode
+    - docker_swarm_secrets_eligible.stdout_lines | length > 0
+
+- name: Require an unlocked Bitwarden session on the Ansible controller
+  ansible.builtin.assert:
+    that:
+      - (docker_swarm_secrets_bitwarden_status.stdout | from_json).status == 'unlocked'
+    fail_msg: "Unlock the Bitwarden vault on the Ansible controller and export BW_SESSION before applying secrets."
+    quiet: true
+  when:
+    - not ansible_check_mode
+    - docker_swarm_secrets_eligible.stdout_lines | length > 0
+
+- name: Synchronize the local Bitwarden vault
+  ansible.builtin.command:
+    argv:
+      - "{{ docker_swarm_secrets_bitwarden_cli }}"
+      - sync
+      - --nointeraction
+  delegate_to: localhost
+  become: false
+  changed_when: false
+  no_log: true
+  when:
+    - not ansible_check_mode
+    - docker_swarm_secrets_eligible.stdout_lines | length > 0
+
+- name: Read the Bitwarden item on the Ansible controller
+  ansible.builtin.command:
+    argv:
+      - "{{ docker_swarm_secrets_bitwarden_cli }}"
+      - get
+      - item
+      - "{{ docker_swarm_secrets_bitwarden_item }}"
+      - --raw
+      - --nointeraction
+  delegate_to: localhost
+  become: false
+  register: docker_swarm_secrets_from_bitwarden
+  changed_when: false
+  failed_when: false
+  no_log: true
+  when:
+    - not ansible_check_mode
+    - docker_swarm_secrets_eligible.stdout_lines | length > 0
+
+- name: Explain a failed Bitwarden item read without exposing vault data
+  ansible.builtin.fail:
+    msg: >-
+      Nie udało się odczytać wpisu Bitwarden (kod {{ docker_swarm_secrets_from_bitwarden.rc | default(1) }}).
+      {{
+        'Nazwa pasuje do kilku wpisów; wskaż UUID właściwego wpisu.'
+        if bitwarden_error is search('more than one|multiple results?')
+        else 'Nie znaleziono wpisu; sprawdź nazwę, konto i dostęp do kolekcji.'
+        if bitwarden_error is search('not found|no results?')
+        else 'Sesja sejfu jest zablokowana lub nieważna; ponownie odblokuj bw i ustaw BW_SESSION.'
+        if bitwarden_error is search('locked|invalid session|session.*invalid')
+        else 'Sprawdź lokalną sesję bw oraz wyszukaj UUID wpisu poleceniem opisanym w ansible/README.md.'
+      }}
+      Surowy komunikat CLI został ukryty, ponieważ może zawierać dane sejfu.
+  vars:
+    bitwarden_error: >-
+      {{
+        ((docker_swarm_secrets_from_bitwarden.stderr | default('')) ~ ' ' ~
+        (docker_swarm_secrets_from_bitwarden.stdout | default(''))) | lower
+      }}
+  when:
+    - not ansible_check_mode
+    - docker_swarm_secrets_eligible.stdout_lines | length > 0
+    - docker_swarm_secrets_from_bitwarden.rc | default(1) != 0
+
+- name: Verify the exact Bitwarden item name or UUID
+  ansible.builtin.assert:
+    that:
+      - bitwarden_item.id == docker_swarm_secrets_bitwarden_item or bitwarden_item.name == docker_swarm_secrets_bitwarden_item
+    fail_msg: "Bitwarden returned an item with a different name or UUID."
+    quiet: true
+  vars:
+    bitwarden_item: "{{ docker_swarm_secrets_from_bitwarden.stdout | from_json }}"
+  no_log: true
+  when:
+    - not ansible_check_mode
+    - docker_swarm_secrets_eligible.stdout_lines | length > 0
+
+- name: Validate every required Bitwarden field before changing Docker secrets
+  ansible.builtin.assert:
+    that:
+      - bitwarden_fields | length == 1
+      - bitwarden_fields[0].value is string
+      - bitwarden_fields[0].value | trim | length > 0
+    fail_msg: "A required Bitwarden field is missing, empty or duplicated."
+    quiet: true
+  vars:
+    bitwarden_fields: >-
+      {{
+        (docker_swarm_secrets_from_bitwarden.stdout | from_json).fields
+        | default([], true)
+        | selectattr('name', 'equalto', item.field)
+        | list
+      }}
   loop: >-
-    {{
-      docker_swarm_secrets
-      | selectattr('name', 'in', docker_swarm_secrets_eligible.stdout_lines)
-      | list
-    }}
+    {{ docker_swarm_secrets | selectattr('name', 'in', docker_swarm_secrets_eligible.stdout_lines | default([])) | list }}
   loop_control:
     label: "{{ item.name }}"
-  register: docker_swarm_secrets_from_onepassword
-  changed_when: false
   no_log: true
   when: not ansible_check_mode
 
@@ -105,19 +207,28 @@
     argv:
       - "{{ docker_swarm_secrets_script }}"
       - --apply
-      - "{{ item.item.name }}"
+      - "{{ item.name }}"
     stdin: >-
       {{
-        (item.stdout | b64decode)
-        if item.item.encoding | default('plain') == 'base64'
-        else item.stdout
+        (bitwarden_value | b64decode)
+        if item.encoding | default('plain') == 'base64'
+        else bitwarden_value
       }}
     stdin_add_newline: false
+  vars:
+    bitwarden_value: >-
+      {{
+        (docker_swarm_secrets_from_bitwarden.stdout | from_json).fields
+        | selectattr('name', 'equalto', item.field)
+        | map(attribute='value')
+        | first
+      }}
   become: true
   become_user: "{{ cluster_admin_user }}"
-  loop: "{{ docker_swarm_secrets_from_onepassword.results }}"
+  loop: >-
+    {{ docker_swarm_secrets | selectattr('name', 'in', docker_swarm_secrets_eligible.stdout_lines | default([])) | list }}
   loop_control:
-    label: "{{ item.item.name }}"
+    label: "{{ item.name }}"
   changed_when: true
   no_log: true
   when: not ansible_check_mode
