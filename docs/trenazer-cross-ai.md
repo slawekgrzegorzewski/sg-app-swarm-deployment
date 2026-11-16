@@ -4,7 +4,7 @@ Integracja działa w backendzie Accountant. Jej kontrakt, model i dane wysyłane
 poza klaster opisuje [backend](../../sg-app/docs/agents/trenazer-cfop.md#ocena-cross-przez-openai).
 Ustawienia integracji znajdują się w
 [`apps/configs/application/application.yml.tmpl`](../apps/configs/application/application.yml.tmpl)
-pod `cube-trainer.feedback`: `enabled: true`, `model: gpt-6.1-sol`,
+pod `cube-trainer.feedback`: `enabled: true`, `model: gpt-6-luna`,
 `reasoning: high`, endpoint i interwał odpytywania. Lokalny backend ma w swoim `application.yml`
 `enabled: false`. Ustawienia feedbacku nie korzystają ze zmiennych środowiskowych.
 
