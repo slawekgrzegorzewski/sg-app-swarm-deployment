@@ -126,28 +126,44 @@ def sync_optional_scopes(opener, endpoint, token, client, existing):
 
 
 def sync_audience_mapper(opener, endpoint, token, client, existing):
-    desired = next(mapper for mapper in client["protocolMappers"] if mapper["name"] == "MCP resource audience")
+    names = ("MCP resource audience", "Accountant API audience")
+    desired = [next(mapper for mapper in client["protocolMappers"] if mapper["name"] == name) for name in names]
     mapper_endpoint = f"{endpoint}/{urllib.parse.quote(existing['id'], safe='')}/protocol-mappers/models"
-    matches = [mapper for mapper in api_request(opener, mapper_endpoint, token) if mapper["name"] == desired["name"]]
-    if len(matches) > 1:
-        raise ValueError("Niejednoznaczny mapper odbiorców MCP; nie zmieniono mapperów.")
-    if not matches:
-        api_request(opener, mapper_endpoint, token, desired)
-        print(f"Dodano mapper odbiorców MCP i sg-api do {client['clientId']}.")
-        return
-    current = matches[0]
-    if current.get("protocolMapper") != "oidc-audience-mapper":
-        raise ValueError("Mapper MCP ma nieoczekiwany typ; nie zmieniono konfiguracji.")
-    if current.get("config", {}).get("included.client.audience") == "sg-api":
-        print(f"Klient {client['clientId']} ma już odbiorcę sg-api.")
-        return
-    if current.get("config", {}).get("included.client.audience"):
-        raise ValueError("Mapper MCP ma już innego odbiorcę klienta; nie nadpisano konfiguracji.")
-    updated = copy.deepcopy(current)
-    updated.setdefault("config", {})["included.client.audience"] = "sg-api"
-    mapper_id = urllib.parse.quote(current["id"], safe="")
-    api_request(opener, f"{mapper_endpoint}/{mapper_id}", token, updated, method="PUT")
-    print(f"Dodano odbiorcę sg-api do mappera {client['clientId']}; sekret i użytkownicy bez zmian.")
+    current_mappers = api_request(opener, mapper_endpoint, token)
+    changes = []
+    for mapper in desired:
+        matches = [current for current in current_mappers if current["name"] == mapper["name"]]
+        if len(matches) > 1:
+            raise ValueError(f"Niejednoznaczny mapper {mapper['name']}; nie zmieniono mapperów klienta.")
+        if not matches:
+            changes.append((mapper, None))
+            continue
+        current = matches[0]
+        if current.get("protocolMapper") != "oidc-audience-mapper" or current.get("protocol") != "openid-connect":
+            raise ValueError(f"Mapper {mapper['name']} ma nieoczekiwany typ; nie zmieniono mapperów klienta.")
+        config = current.get("config", {})
+        if config.get("included.client.audience") not in (None, "", "sg-api"):
+            raise ValueError(f"Mapper {mapper['name']} ma innego odbiorcę klienta; nie zmieniono mapperów klienta.")
+        expected_custom = mapper["config"].get("included.custom.audience")
+        if config.get("included.custom.audience") not in (None, "", expected_custom):
+            raise ValueError(f"Mapper {mapper['name']} ma innego odbiorcę custom; nie zmieniono mapperów klienta.")
+        updated = copy.deepcopy(current)
+        updated.setdefault("config", {}).update(mapper["config"])
+        for key in ("included.client.audience", "included.custom.audience"):
+            if key not in mapper["config"]:
+                updated["config"].pop(key, None)
+        if updated != current:
+            changes.append((updated, current["id"]))
+
+    for mapper, mapper_id in changes:
+        if mapper_id is None:
+            api_request(opener, mapper_endpoint, token, mapper)
+        else:
+            encoded_id = urllib.parse.quote(mapper_id, safe="")
+            api_request(opener, f"{mapper_endpoint}/{encoded_id}", token, mapper, method="PUT")
+        print(f"Uzgodniono mapper {mapper['name']} klienta {client['clientId']}; sekret i użytkownicy bez zmian.")
+    if not changes:
+        print(f"Klient {client['clientId']} ma już osobne mappery odbiorców MCP i sg-api.")
 
 
 def main():
@@ -159,7 +175,7 @@ def main():
     parser.add_argument("--token-stdin", action="store_true", help="Odczytaj token z potoku stdin, bez limitu długości wiersza terminala.")
     parser.add_argument("--apply", action="store_true", help="Wykonaj plan przez Admin API; domyślnie pokaż tylko plan.")
     parser.add_argument("--sync-scopes", action="store_true", help="Dodaj brakujące optional scope’y istniejących klientów zgodnie z plikiem realmu; bez zmiany sekretów.")
-    parser.add_argument("--sync-audience", action="store_true", help="Dodaj odbiorcę sg-api w mapperze MCP istniejących klientów, bez zmiany sekretów.")
+    parser.add_argument("--sync-audience", action="store_true", help="Uzgodnij osobne mappery odbiorców MCP i sg-api, naprawiając stary mapper bez zmiany sekretów.")
     args = parser.parse_args()
     if args.apply and args.check_auth:
         parser.error("Wybierz --apply albo --check-auth.")
@@ -188,7 +204,7 @@ def main():
             if args.sync_scopes and client.get("optionalClientScopes"):
                 print(f"Istniejący {client['clientId']}: GET scope’ów realmu i klienta, PUT brakujących przypisań: {', '.join(client['optionalClientScopes'])}.")
             if args.sync_audience:
-                print(f"Istniejący {client['clientId']}: GET mapperów, POST lub PUT mappera odbiorców MCP, dodanie sg-api.")
+                print(f"Istniejący {client['clientId']}: GET mapperów, POST/PUT dwóch osobnych mapperów; usunięcie sg-api ze starego mappera MCP.")
         return
 
     context = create_tls_context(args.ca_file)

@@ -187,8 +187,18 @@
           "protocolMapper": "oidc-audience-mapper",
           "consentRequired": false,
           "config": {
-            "included.client.audience": "sg-api",
             "included.custom.audience": "https://mcp.grzegorzewski.pl/mcp",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "Accountant API audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "sg-api",
             "id.token.claim": "false",
             "access.token.claim": "true"
           }
@@ -225,8 +235,18 @@
           "protocolMapper": "oidc-audience-mapper",
           "consentRequired": false,
           "config": {
-            "included.client.audience": "sg-api",
             "included.custom.audience": "https://mcp.grzegorzewski.pl/mcp",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "Accountant API audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "sg-api",
             "id.token.claim": "false",
             "access.token.claim": "true"
           }

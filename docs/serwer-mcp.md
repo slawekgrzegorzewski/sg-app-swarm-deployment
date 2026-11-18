@@ -37,8 +37,13 @@ Realmy `sg` i `sg-test` deklarują osobne klienty:
 | `sg-mcp-inspector` | Publiczny, PKCE S256              | Testy lokalnym Inspectorem |
 
 Oba klienty mają włączony wyłącznie Authorization Code, bez Implicit,
-Password Grant i Service Accounts. Ich mapper dodaje audience równe URI MCP
-oraz `sg-api`, aby odczytywać własne próby przez Accountant.
+Password Grant i Service Accounts. Każdy klient ma dwa osobne mappery Audience:
+`MCP resource audience` z `Included Custom Audience` równym URI MCP oraz
+`Accountant API audience` z `Included Client Audience` równym `sg-api`.
+W obu włączamy Add to access token i wyłączamy Add to ID token.
+Keycloak 26.5.7 traktuje custom audience jako fallback: wypełnienie obu pól
+w jednym mapperze dodaje wyłącznie client audience. Dlatego nie łączymy ich
+w jednym mapperze. Osobne mappery pozwalają odczytywać własne próby w Accountant.
 MCP wymaga scope `openid`; opcjonalne `email` i `profile` obsługują
 standardowe mechanizmy OIDC. Klient `sg-mcp-chatgpt` ma przypisany
 `offline_access` jako optional client scope, ponieważ ChatGPT żąda go przy logowaniu.
@@ -266,9 +271,13 @@ python3 apps/tools/create-mcp-clients.py --realm sg --sync-audience --apply
 python3 apps/tools/create-mcp-clients.py --realm sg-test --sync-audience --apply
 ```
 
-Tryb `--sync-audience` wykonuje GET mapperów i dodaje `included.client.audience:
-sg-api` przez PUT pojedynczego mappera; gdy go brakuje, tworzy go przez POST.
-Zachowuje pozostałe ustawienia mappera, sekret klienta oraz użytkowników.
+Tryb `--sync-audience` wykonuje GET mapperów i uzgadnia dwa osobne mappery
+przez POST/PUT. Naprawia wcześniejszy mapper MCP z wpisanym `sg-api`:
+usuwając `included.client.audience` z mappera MCP, zachowuje jego custom URI
+i dodaje dedykowany mapper `Accountant API audience` dla `sg-api`.
+Przed pierwszym zapisem sprawdza oba mappery klienta; nie nadpisuje nieznanych
+audience ani mapperów o innym typie. Zachowuje dodatkowe ustawienia mapperów,
+sekret klienta i użytkowników. Ponowne wykonanie jest idempotentne.
 Po zmianie odnów token lub połącz MCP ponownie, aby `aud` zawierało URI MCP i `sg-api`.
 Użytkownik musi mieć konto powiązane przez email i uprawnienia Accountant w domenie.
 
@@ -321,3 +330,36 @@ python3 -m unittest discover -s tests -p test_keycloak_gateway.py
 
 Test tworzy i usuwa wyłącznie własny kontener oraz sieć. Nie łączy się z produkcją.
 [Dokumentacja buforowania Nginx](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_buffer_size).
+
+## Powtarzające się łączenie OAuth po zalogowaniu
+
+Sekwencja `POST .../token → 200`, a następnie `POST /mcp → 401` tuż po
+wydaniu tokenu wskazuje na odrzucenie nowego tokenu przez MCP. Sam status
+„połączono” w ChatGPT nie potwierdza poprawnej walidacji JWT po stronie zasobu.
+Nie zwiększamy czasu ważności tokenów jako obejścia błędnego audience.
+
+Dla Keycloak 26.5.7 sprawdź dwa osobne mappery opisane powyżej. W access tokenie
+musi występować zarówno `https://mcp.grzegorzewski.pl/mcp`, jak i `sg-api`.
+Jeden mapper z oboma polami powoduje brak URI MCP w `aud` i kolejne 401.
+Naprawę istniejących klientów wykonuje aktualny `--sync-audience --apply`;
+import realmów przy starcie pomija istniejące realmy i nie zastępuje tej operacji.
+Po naprawie rozpocznij nowe połączenie OAuth, aby otrzymać nowy token.
+
+Testy jednostkowe synchronizacji:
+
+```sh
+python3 -m unittest discover -s tests -p test_mcp_clients.py
+```
+
+Test na rzeczywistym Keycloaku 26.5.7, z tymczasowym kontenerem i testowymi
+realmami, weryfikuje audience przed i po naprawie oraz zachowanie sekretów,
+użytkowników i idempotencji:
+
+```sh
+SG_KEYCLOAK_INTEGRATION=1 python3 -m unittest discover -s tests -p test_mcp_audience_keycloak.py
+```
+
+Na PowerShell ustaw najpierw `$env:SG_KEYCLOAK_INTEGRATION='1'`, a następnie
+uruchom to samo polecenie Python bez prefiksu zmiennej.
+Źródło zachowania mappera:
+[AudienceProtocolMapper w Keycloak 26.5.7](https://github.com/keycloak/keycloak/blob/26.5.7/services/src/main/java/org/keycloak/protocol/oidc/mappers/AudienceProtocolMapper.java).

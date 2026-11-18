@@ -11,30 +11,43 @@ SPEC.loader.exec_module(CLIENTS)
 
 
 class McpClientsTest(unittest.TestCase):
-    def test_both_realms_issue_tokens_for_mcp_and_accountant(self):
+    def test_both_realms_define_separate_audience_mappers(self):
         for realm in ("sg", "sg-test"):
             for client in CLIENTS.load_clients(realm):
-                mapper, = [item for item in client["protocolMappers"] if item["name"] == "MCP resource audience"]
-                self.assertEqual("sg-api", mapper["config"]["included.client.audience"])
-                self.assertEqual("https://mcp.grzegorzewski.pl/mcp", mapper["config"]["included.custom.audience"])
+                mappers = {item["name"]: item for item in client["protocolMappers"]}
+                mcp = mappers["MCP resource audience"]["config"]
+                accountant = mappers["Accountant API audience"]["config"]
+                self.assertNotIn("included.client.audience", mcp)
+                self.assertEqual("https://mcp.grzegorzewski.pl/mcp", mcp["included.custom.audience"])
+                self.assertEqual("sg-api", accountant["included.client.audience"])
+                self.assertNotIn("included.custom.audience", accountant)
 
-    def test_sync_updates_only_mapper_and_preserves_existing_configuration(self):
+    def test_sync_repairs_legacy_mapper_and_adds_accountant_without_changing_other_options(self):
         client = CLIENTS.load_clients("sg")[0]
         mapper = copy.deepcopy(client["protocolMappers"][0])
         mapper["id"] = "mapper-id"
-        mapper["config"].pop("included.client.audience")
-        mapper["config"]["existing-option"] = "keep"
+        mapper["config"].update({"included.client.audience": "sg-api", "existing-option": "keep"})
         original = copy.deepcopy(mapper)
-        with patch.object(CLIENTS, "api_request", side_effect=[[mapper], None]) as api:
-            CLIENTS.sync_audience_mapper(None, "https://example/admin/realms/sg/clients", "fake-token", client, {"id": "client-id"})
-        self.assertEqual(2, api.call_count)
-        call = api.call_args_list[1]
-        self.assertEqual("https://example/admin/realms/sg/clients/client-id/protocol-mappers/models/mapper-id", call.args[1])
-        self.assertEqual({"method": "PUT"}, call.kwargs)
-        updated = call.args[3]
-        self.assertEqual("sg-api", updated["config"].pop("included.client.audience"))
-        self.assertEqual(original, updated)
+        with patch.object(CLIENTS, "api_request", side_effect=[[mapper], None, None]) as api:
+            CLIENTS.sync_audience_mapper(None, "https://example/clients", "fake-token", client, {"id": "client-id"})
+        self.assertEqual(3, api.call_count)
+        update, create = api.call_args_list[1:]
+        self.assertEqual("https://example/clients/client-id/protocol-mappers/models/mapper-id", update.args[1])
+        self.assertEqual({"method": "PUT"}, update.kwargs)
+        updated = update.args[3]
+        expected = copy.deepcopy(original)
+        expected["config"].pop("included.client.audience")
+        self.assertEqual(expected, updated)
+        self.assertEqual(client["protocolMappers"][1], create.args[3])
+        self.assertEqual({}, create.kwargs)
         self.assertEqual(original, mapper)
+
+    def test_sync_adds_only_accountant_to_existing_correct_mcp_mapper(self):
+        client = CLIENTS.load_clients("sg")[0]
+        with patch.object(CLIENTS, "api_request", side_effect=[[client["protocolMappers"][0]], None]) as api:
+            CLIENTS.sync_audience_mapper(None, "https://example/clients", "fake-token", client, {"id": "client-id"})
+        self.assertEqual(2, api.call_count)
+        self.assertEqual("Accountant API audience", api.call_args.args[3]["name"])
 
     def test_sync_is_idempotent(self):
         client = CLIENTS.load_clients("sg")[0]
@@ -42,16 +55,35 @@ class McpClientsTest(unittest.TestCase):
             CLIENTS.sync_audience_mapper(None, "https://example/clients", "fake-token", client, {"id": "client-id"})
         self.assertEqual(1, api.call_count)
 
-    def test_does_not_overwrite_ambiguous_or_unexpected_mapper(self):
+    def test_preflights_both_mappers_before_any_write(self):
         client = CLIENTS.load_clients("sg")[0]
-        mapper = client["protocolMappers"][0]
-        other_audience = copy.deepcopy(mapper)
-        other_audience["config"]["included.client.audience"] = "another-api"
-        for response in ([mapper, mapper], [dict(mapper, protocolMapper="unexpected")], [other_audience]):
+        legacy = copy.deepcopy(client["protocolMappers"][0])
+        legacy["id"] = "legacy-mapper-id"
+        legacy["config"]["included.client.audience"] = "sg-api"
+        wrong_accountant = dict(client["protocolMappers"][1], protocolMapper="unexpected")
+        for response in ([legacy, legacy], [legacy, wrong_accountant],
+                         [dict(legacy, protocolMapper="unexpected")]):
             with patch.object(CLIENTS, "api_request", return_value=response) as api:
                 with self.assertRaises(ValueError):
                     CLIENTS.sync_audience_mapper(None, "https://example/clients", "fake-token", client, {"id": "client-id"})
             self.assertEqual(1, api.call_count)
+
+    def test_preserves_mappers_with_unexpected_audiences(self):
+        client = CLIENTS.load_clients("sg")[0]
+        for key in ("included.client.audience", "included.custom.audience"):
+            current = copy.deepcopy(client["protocolMappers"][0])
+            current["config"][key] = "another-api"
+            with patch.object(CLIENTS, "api_request", return_value=[current]) as api:
+                with self.assertRaises(ValueError):
+                    CLIENTS.sync_audience_mapper(None, "https://example/clients", "fake-token", client, {"id": "client-id"})
+            self.assertEqual(1, api.call_count)
+
+    def test_creates_both_missing_mappers(self):
+        client = CLIENTS.load_clients("sg")[0]
+        with patch.object(CLIENTS, "api_request", side_effect=[[], None, None]) as api:
+            CLIENTS.sync_audience_mapper(None, "https://example/clients", "fake-token", client, {"id": "client-id"})
+        self.assertEqual(3, api.call_count)
+        self.assertEqual(client["protocolMappers"], [call.args[3] for call in api.call_args_list[1:]])
 
 
 if __name__ == "__main__":
