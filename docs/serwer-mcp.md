@@ -290,3 +290,34 @@ Kolejność wdrożenia usunięcia automatycznej oceny:
 Konfiguracja backendu i Ansible nie używa już `openai_api_key`. Istniejący
 sekret Docker i wpis Vaultwarden nie są automatycznie kasowane. Nie ma potrzeby
 ich odtwarzania do działania nowych narzędzi.
+
+## Błąd 502 podczas logowania OAuth
+
+Discovery lub strona główna Keycloaka mogą działać, gdy konkretne żądanie
+Authorization Code zwraca 502. Parametry OAuth (m.in. `state` i `id_token_hint`)
+mogą zwiększać nagłówki odpowiedzi Keycloaka, w tym ciasteczka sesji logowania.
+Gateway musi pomieścić cały nagłówek odpowiedzi upstream w `proxy_buffer_size`.
+Domyślne 4/8 KiB może być niewystarczające.
+
+Location proxy domeny `auth.grzegorzewski.pl` ustawia `proxy_buffer_size 16k`,
+`proxy_buffers 8 16k` i `proxy_busy_buffers_size 32k`. Zmiana dotyczy wyłącznie
+Keycloaka, bez podnoszenia globalnych limitów żądań i bez wyłączania weryfikacji
+OAuth. Przyczynę w logach Nginx identyfikuje `upstream sent too big header
+while reading response header from upstream`; przy odczycie logów nie kopiuj
+pełnych URL-i logowania ani tokenów.
+
+Wdróż release infrastruktury przez workflow `update cluster`; aktualizacja
+stacka `core` uruchomi gateway z nowym configiem. Nie wymaga to restartu Keycloaka
+ani ponownego importu realmu. Następnie rozpocznij nowe połączenie OAuth w kliencie.
+Sam restart gatewaya ze starym configiem nie zastosuje poprawki.
+
+Test integracyjny wykorzystuje rzeczywisty obraz gatewaya i testowy upstream
+z nagłówkiem przekraczającym 8 KiB. Z katalogu repozytorium, przy dostępnym Dockerze
+oraz `openssl`:
+
+```sh
+python3 -m unittest discover -s tests -p test_keycloak_gateway.py
+```
+
+Test tworzy i usuwa wyłącznie własny kontener oraz sieć. Nie łączy się z produkcją.
+[Dokumentacja buforowania Nginx](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_buffer_size).
