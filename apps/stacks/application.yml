@@ -151,6 +151,26 @@ services:
         constraints:
           - node.labels.workload.application == true
 
+  mcp:
+    image: public.registry.grzegorzewski.pl/mcp:${MCP_IMAGE_TAG:-latest}
+    networks:
+      - application_network
+    logging:
+      <<: *syslog_logging
+      options:
+        <<: *syslog_options
+        tag: application_mcp
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.workload.application == true
+      update_config:
+        order: start-first
+        failure_action: rollback
+      rollback_config:
+        order: stop-first
+
   keycloak:
     image: quay.io/keycloak/keycloak:26.5.7
     environment:

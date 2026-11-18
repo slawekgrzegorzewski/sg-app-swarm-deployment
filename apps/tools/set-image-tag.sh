@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 if [[ "$#" -ne 2 ]]; then
-  echo "Usage: $(basename "$0") {frontend|backend|banks|tapo} IMAGE_TAG" >&2
+  echo "Usage: $(basename "$0") {frontend|backend|banks|mcp|tapo} IMAGE_TAG" >&2
   exit 2
 fi
 
@@ -17,9 +17,10 @@ case "$component" in
   frontend) variable_name=FRONTEND_IMAGE_TAG ;;
   backend) variable_name=BACKEND_IMAGE_TAG ;;
   banks) variable_name=BANKS_IMAGE_TAG ;;
+  mcp) variable_name=MCP_IMAGE_TAG ;;
   tapo) variable_name=TAPO ;;
   *)
-    echo "Unknown component: $component (expected frontend, backend, banks, or tapo)" >&2
+    echo "Unknown component: $component (expected frontend, backend, banks, mcp, or tapo)" >&2
     exit 2
     ;;
 esac
@@ -41,6 +42,7 @@ fi
 frontend_tag=latest
 backend_tag=latest
 banks_tag=latest
+mcp_tag=latest
 tapo_tag=latest
 
 if [[ -f "$environment_file" ]]; then
@@ -50,6 +52,7 @@ if [[ -f "$environment_file" ]]; then
       FRONTEND_IMAGE_TAG) frontend_tag="$value" ;;
       BACKEND_IMAGE_TAG) backend_tag="$value" ;;
       BANKS_IMAGE_TAG) banks_tag="$value" ;;
+      MCP_IMAGE_TAG) mcp_tag="$value" ;;
       TAPO) tapo_tag="$value" ;;
       *)
         echo "Unknown setting in $environment_file: $key" >&2
@@ -63,6 +66,7 @@ case "$variable_name" in
   FRONTEND_IMAGE_TAG) frontend_tag="$image_tag" ;;
   BACKEND_IMAGE_TAG) backend_tag="$image_tag" ;;
   BANKS_IMAGE_TAG) banks_tag="$image_tag" ;;
+  MCP_IMAGE_TAG) mcp_tag="$image_tag" ;;
   TAPO) tapo_tag="$image_tag" ;;
 esac
 
@@ -73,6 +77,7 @@ umask 077
   printf 'FRONTEND_IMAGE_TAG=%s\n' "$frontend_tag"
   printf 'BACKEND_IMAGE_TAG=%s\n' "$backend_tag"
   printf 'BANKS_IMAGE_TAG=%s\n' "$banks_tag"
+  printf 'MCP_IMAGE_TAG=%s\n' "$mcp_tag"
   printf 'TAPO=%s\n' "$tapo_tag"
 } > "$temporary_file"
 mv -f -- "$temporary_file" "$environment_file"

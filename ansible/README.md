@@ -415,6 +415,7 @@ Polecenia managera:
 /srv/cluster/current/tools/activate-release.sh <previous-release-id>
 /srv/cluster/current/tools/set-image-tag.sh backend <image-tag>
 /srv/cluster/current/tools/set-image-tag.sh banks <image-tag>
+/srv/cluster/current/tools/set-image-tag.sh mcp <image-tag>
 /srv/cluster/current/tools/set-image-tag.sh frontend <image-tag>
 /srv/cluster/current/tools/set-image-tag.sh tapo <image-tag>
 /srv/cluster/current/tools/restore-postgres.sh \
@@ -440,6 +441,9 @@ wymagają podania `image_tag`; zapisują go tym skryptem i uzgadniają stack
 Obraz czytnika Tapo używa zmiennej `TAPO`; polecenie
 `set-image-tag.sh tapo <image-tag>` zapisuje ją w tym samym pliku i wymaga
 ponownego uzgodnienia stacka `application`.
+
+Serwer MCP używa `MCP_IMAGE_TAG` i komponentu `mcp`.
+[Pierwsze wdrożenie oraz zakres dostępu MCP](../docs/serwer-mcp.md).
 
 ## SSH pomiędzy hostami
 
