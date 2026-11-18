@@ -39,7 +39,14 @@ Realmy `sg` i `sg-test` deklarują osobne klienty:
 Oba klienty mają włączony wyłącznie Authorization Code, bez Implicit,
 Password Grant i Service Accounts. Ich mapper dodaje audience równe URI MCP.
 MCP wymaga scope `openid`; opcjonalne `email` i `profile` obsługują
-standardowe mechanizmy OIDC. Nie dodajemy globalnej listy `clientScopes`,
+standardowe mechanizmy OIDC. Klient `sg-mcp-chatgpt` ma przypisany
+`offline_access` jako optional client scope, ponieważ ChatGPT żąda go przy logowaniu.
+Pozwala to wystawić offline refresh token zgodnie z polityką sesji Keycloaka.
+Wystawienie wymaga też roli realmowej `offline_access` u użytkownika;
+standardowo jest ona częścią domyślnych ról Keycloaka. Jeśli logowanie zakończy się
+`Offline tokens not allowed for the user or client`, sprawdź Role mapping
+danego użytkownika. Skrypt synchronizacji scope’ów nie nadaje ról użytkownikom.
+Nie dodajemy globalnej listy `clientScopes`,
 ponieważ zmieniłaby tworzenie domyślnych scope’ów przy imporcie realmu.
 Tokeny zwykłego klienta `sg-frontend` nie mają audience MCP i są odrzucane.
 
@@ -53,6 +60,7 @@ Tokeny zwykłego klienta `sg-frontend` nie mają audience MCP i są odrzucane.
 3. W konfiguracji połączenia MCP ChatGPT wybierz OAuth i podaj URL
    `https://mcp.grzegorzewski.pl/mcp`, Client ID `sg-mcp-chatgpt` i Client Secret
    z poprzedniego kroku. Scope: `openid`, a jeśli klient ich żąda, także `email profile`.
+   ChatGPT może dodatkowo wysłać `offline_access`; jest dopuszczony w konfiguracji klienta.
 4. Sprawdź dokładny redirect URI pokazany przez ChatGPT. W konfiguracji
    klienta dopuszczony jest `https://chatgpt.com/connector_platform_oauth_redirect`.
    Jeżeli panel pokazuje `https://chatgpt.com/connector/oauth/<callback_id>`,
@@ -143,12 +151,30 @@ POST /admin/realms/sg/clients
 ```
 
 POST jest wykonywany oddzielnie dla każdego brakującego klienta.
-Istniejący klient jest pomijany: jego konfiguracja i sekret nie są aktualizowane.
+Bez `--sync-scopes` istniejący klient jest pomijany: jego konfiguracja i sekret nie są aktualizowane.
 Ponowne uruchomienie nie tworzy duplikatów. Użytkownicy, grupy, role i pozostali
-klienci nie są modyfikowani; nie jest wykonywany import realmu ani PUT/DELETE.
+klienci nie są modyfikowani; domyślnie nie jest wykonywany import realmu ani PUT/DELETE.
 Operacje nie są transakcją: jeśli drugi POST zawiedzie, pierwszy utworzony klient
 pozostaje, a kolejne uruchomienie go pomija. Istniejącego klienta z niepoprawnymi
 ustawieniami popraw osobno w Admin Console.
+
+Jeśli klient został utworzony przed dodaniem `offline_access`, samo `--apply`
+go nie naprawi. Zsynchronizuj brakujące optional scope’y z definicjami realmów:
+
+```sh
+pbpaste | python3 apps/tools/create-mcp-clients.py --realm sg --apply --sync-scopes --token-stdin
+```
+
+Ten tryb odczytuje scope’y realmu i klienta, a następnie wykonuje wyłącznie
+brakujące przypisania `PUT /admin/realms/sg/clients/<client-uuid>/optional-client-scopes/<scope-uuid>`.
+Nie aktualizuje reprezentacji klienta, sekretu ani użytkowników i nie usuwa
+dotychczasowych przypisań. Ponowne uruchomienie pomija przypisane scope’y.
+Dla `sg-test` zmień argument `--realm`. Jeśli `offline_access` nie istnieje
+w realmie, skrypt zatrzyma się przed zmianą przypisań.
+
+Alternatywnie: Admin Console → realm `sg` → Clients → `sg-mcp-chatgpt`
+→ Client scopes → Add client scope → `offline_access` → Add as optional.
+Po zmianie ponów połączenie OAuth w ChatGPT. Nie wymaga to restartu MCP ani Keycloaka.
 
 Dla środowiska testowego podaj `--realm sg-test`; na Windows użyj `python`
 zamiast `python3`, jeśli tak nazywa się interpreter. Na innym serwerze użyj

@@ -229,6 +229,9 @@
             "access.token.claim": "true"
           }
         }
+      ],
+      "optionalClientScopes": [
+        "offline_access"
       ]
     }
   ]

@@ -85,11 +85,12 @@ def describe_token(token):
         print(f"  ważny do: {valid_until.isoformat()} (pozostało {remaining} s według lokalnego zegara)")
 
 
-def api_request(opener, url, token, payload=None):
+def api_request(opener, url, token, payload=None, method=None):
     data = None if payload is None else json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(
         url,
         data=data,
+        method=method,
         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
     )
     try:
@@ -97,11 +98,31 @@ def api_request(opener, url, token, payload=None):
             body = response.read()
             return json.loads(body) if body else None
     except urllib.error.HTTPError as error:
-        raise RuntimeError(f"{request.get_method()} {url}: HTTP {error.code}. Istniejące dane nie są nadpisywane ani usuwane.") from None
+        raise RuntimeError(f"{request.get_method()} {url}: HTTP {error.code}.") from None
     except urllib.error.URLError as error:
         if isinstance(error.reason, ssl.SSLCertVerificationError):
             raise RuntimeError("Nie można zweryfikować certyfikatu TLS. Sprawdź łańcuch certyfikatu serwera i magazyn CA Pythona lub podaj --ca-file. Weryfikacja TLS pozostaje włączona.") from None
         raise
+
+
+def sync_optional_scopes(opener, endpoint, token, client, existing):
+    required = client.get("optionalClientScopes", [])
+    if not required:
+        return
+    scope_endpoint = endpoint.rsplit("/", 1)[0] + "/client-scopes"
+    available = {scope["name"]: scope["id"] for scope in api_request(opener, scope_endpoint, token)}
+    missing = [name for name in required if name not in available]
+    if missing:
+        raise ValueError(f"Brak scope’ów w realmie: {', '.join(missing)}. Nie zmieniono przypisań klienta.")
+    client_endpoint = f"{endpoint}/{urllib.parse.quote(existing['id'], safe='')}/optional-client-scopes"
+    assigned = {scope["name"] for scope in api_request(opener, client_endpoint, token)}
+    for name in required:
+        if name in assigned:
+            print(f"Klient {client['clientId']} ma już optional scope {name}.")
+            continue
+        scope_id = urllib.parse.quote(available[name], safe="")
+        api_request(opener, f"{client_endpoint}/{scope_id}", token, method="PUT")
+        print(f"Dodano optional scope {name} do klienta {client['clientId']}; sekret pozostaje bez zmian.")
 
 
 def main():
@@ -112,9 +133,12 @@ def main():
     parser.add_argument("--check-auth", action="store_true", help="Sprawdź token przez GET, bez tworzenia klientów.")
     parser.add_argument("--token-stdin", action="store_true", help="Odczytaj token z potoku stdin, bez limitu długości wiersza terminala.")
     parser.add_argument("--apply", action="store_true", help="Wykonaj GET i POST; domyślnie pokaż tylko plan.")
+    parser.add_argument("--sync-scopes", action="store_true", help="Dodaj brakujące optional scope’y istniejących klientów zgodnie z plikiem realmu; bez zmiany sekretów.")
     args = parser.parse_args()
     if args.apply and args.check_auth:
         parser.error("Wybierz --apply albo --check-auth.")
+    if args.sync_scopes and args.check_auth:
+        parser.error("--check-auth nie łączy się z --sync-scopes.")
     if args.token_stdin and not (args.apply or args.check_auth):
         parser.error("--token-stdin wymaga --apply albo --check-auth.")
     if args.token_stdin and sys.stdin.isatty():
@@ -135,6 +159,8 @@ def main():
             if "secret" in preview:
                 preview["secret"] = "<sekret podawany przy wykonaniu>"
             print(json.dumps(preview, indent=2, ensure_ascii=False))
+            if args.sync_scopes and client.get("optionalClientScopes"):
+                print(f"Istniejący {client['clientId']}: GET scope’ów realmu i klienta, PUT brakujących przypisań: {', '.join(client['optionalClientScopes'])}.")
         return
 
     context = create_tls_context(args.ca_file)
@@ -155,8 +181,14 @@ def main():
         if args.check_auth:
             print(f"GET {endpoint}?{query}: HTTP 200")
             continue
-        if any(item["clientId"] == client["clientId"] for item in existing):
-            print(f"Pominięto istniejącego klienta {client['clientId']} (bez zmian konfiguracji i sekretu).")
+        matches = [item for item in existing if item["clientId"] == client["clientId"]]
+        if matches:
+            if len(matches) != 1:
+                raise ValueError(f"Niejednoznaczny wynik wyszukiwania klienta {client['clientId']}.")
+            if args.sync_scopes:
+                sync_optional_scopes(opener, endpoint, token, client, matches[0])
+            else:
+                print(f"Pominięto istniejącego klienta {client['clientId']} (bez zmian konfiguracji i sekretu).")
         else:
             missing.append(client)
 
