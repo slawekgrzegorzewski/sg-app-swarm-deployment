@@ -74,5 +74,3 @@ docker_swarm_secrets:
     field: grafana_admin_password
   - name: portainer_admin_password
     field: portainer_admin_password
-  - name: openai_api_key
-    field: openai_api_key

@@ -37,7 +37,8 @@ Realmy `sg` i `sg-test` deklarują osobne klienty:
 | `sg-mcp-inspector` | Publiczny, PKCE S256              | Testy lokalnym Inspectorem |
 
 Oba klienty mają włączony wyłącznie Authorization Code, bez Implicit,
-Password Grant i Service Accounts. Ich mapper dodaje audience równe URI MCP.
+Password Grant i Service Accounts. Ich mapper dodaje audience równe URI MCP
+oraz `sg-api`, aby odczytywać własne próby przez Accountant.
 MCP wymaga scope `openid`; opcjonalne `email` i `profile` obsługują
 standardowe mechanizmy OIDC. Klient `sg-mcp-chatgpt` ma przypisany
 `offline_access` jako optional client scope, ponieważ ChatGPT żąda go przy logowaniu.
@@ -245,3 +246,47 @@ Tag `MCP_IMAGE_TAG` jest zapisywany razem z pozostałymi tagami
 w `/srv/cluster/image-tags.env`, dzięki czemu release klastra zachowuje wybrany obraz.
 Rollback do release'u sprzed obsługi MCP wymaga usunięcia tego wpisu
 z pliku tagów, ponieważ wcześniejsze skrypty odrzucają nieznane ustawienia.
+
+## Narzędzia CROSS i przejście z automatycznej oceny
+
+MCP udostępnia `list_cross_attempts` i `get_cross_attempt` przez istniejący
+endpoint `/mcp`. To narzędzia protokołu MCP, bez nowych publicznych tras REST.
+[Argumenty i dane](../../sg-app/docs/agents/serwer-mcp.md#narzędzia-cross).
+Swarm ustawia `ACCOUNTANT_GRAPHQL_URL=http://application_backend:8080/graphql`.
+MCP nie ma dostępu do bazy ani sekretu serwisowego Accountant. Przekazuje token
+bieżącego użytkownika, wystawiony dla obu usług. Accountant weryfikuje go
+ponownie i sprawdza uprawnienia domenowe oraz właściciela próby.
+
+Dla istniejących klientów samo uruchomienie Keycloaka nie aktualizuje mappera.
+Podgląd i zastosowanie zmiany dla obu realmów:
+
+```sh
+python3 apps/tools/create-mcp-clients.py --realm sg --sync-audience
+python3 apps/tools/create-mcp-clients.py --realm sg --sync-audience --apply
+python3 apps/tools/create-mcp-clients.py --realm sg-test --sync-audience --apply
+```
+
+Tryb `--sync-audience` wykonuje GET mapperów i dodaje `included.client.audience:
+sg-api` przez PUT pojedynczego mappera; gdy go brakuje, tworzy go przez POST.
+Zachowuje pozostałe ustawienia mappera, sekret klienta oraz użytkowników.
+Po zmianie odnów token lub połącz MCP ponownie, aby `aud` zawierało URI MCP i `sg-api`.
+Użytkownik musi mieć konto powiązane przez email i uprawnienia Accountant w domenie.
+
+Kolejność wdrożenia usunięcia automatycznej oceny:
+
+1. Wykonaj backup Accountant, jeśli chcesz zachować stare teksty ocen. V57 trwale
+   usuwa kolumny ocen i statusy; próby, nagrania oraz analiza CFOP pozostają.
+2. Wdróż frontend bez pól oceny i pollingu. Jest zgodny ze starym backendem.
+   Zamknij lub odśwież stare sesje przeglądarki przed usunięciem pól GraphQL.
+3. Zainstaluj release konfiguracji stacka bez sekretu OpenAI w backendzie
+   i z adresem Accountant dla MCP. Zsynchronizuj mappery klientów poleceniami powyżej.
+4. Wdróż Accountant z V57 i nowymi zapytaniami. Stara instancja backendu musi być
+   zatrzymana przed migracją (aktualizacja `stop-first`); nie uruchamiaj jej workera
+   równolegle z usuwaniem kolumn. Rollback starego obrazu wymaga przywrócenia schematu
+   z backupu, ponieważ V57 jest niezgodna ze starym kodem.
+5. Wdróż MCP przez jego workflow, połącz klienta ponownie, wykonaj listowanie
+   i pobranie próby. Sprawdź również brak dostępu do UUID innego użytkownika.
+
+Konfiguracja backendu i Ansible nie używa już `openai_api_key`. Istniejący
+sekret Docker i wpis Vaultwarden nie są automatycznie kasowane. Nie ma potrzeby
+ich odtwarzania do działania nowych narzędzi.

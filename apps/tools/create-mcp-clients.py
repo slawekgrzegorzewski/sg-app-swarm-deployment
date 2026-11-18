@@ -125,6 +125,31 @@ def sync_optional_scopes(opener, endpoint, token, client, existing):
         print(f"Dodano optional scope {name} do klienta {client['clientId']}; sekret pozostaje bez zmian.")
 
 
+def sync_audience_mapper(opener, endpoint, token, client, existing):
+    desired = next(mapper for mapper in client["protocolMappers"] if mapper["name"] == "MCP resource audience")
+    mapper_endpoint = f"{endpoint}/{urllib.parse.quote(existing['id'], safe='')}/protocol-mappers/models"
+    matches = [mapper for mapper in api_request(opener, mapper_endpoint, token) if mapper["name"] == desired["name"]]
+    if len(matches) > 1:
+        raise ValueError("Niejednoznaczny mapper odbiorców MCP; nie zmieniono mapperów.")
+    if not matches:
+        api_request(opener, mapper_endpoint, token, desired)
+        print(f"Dodano mapper odbiorców MCP i sg-api do {client['clientId']}.")
+        return
+    current = matches[0]
+    if current.get("protocolMapper") != "oidc-audience-mapper":
+        raise ValueError("Mapper MCP ma nieoczekiwany typ; nie zmieniono konfiguracji.")
+    if current.get("config", {}).get("included.client.audience") == "sg-api":
+        print(f"Klient {client['clientId']} ma już odbiorcę sg-api.")
+        return
+    if current.get("config", {}).get("included.client.audience"):
+        raise ValueError("Mapper MCP ma już innego odbiorcę klienta; nie nadpisano konfiguracji.")
+    updated = copy.deepcopy(current)
+    updated.setdefault("config", {})["included.client.audience"] = "sg-api"
+    mapper_id = urllib.parse.quote(current["id"], safe="")
+    api_request(opener, f"{mapper_endpoint}/{mapper_id}", token, updated, method="PUT")
+    print(f"Dodano odbiorcę sg-api do mappera {client['clientId']}; sekret i użytkownicy bez zmian.")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Dodaje wyłącznie brakujących klientów MCP przez Keycloak Admin API.")
     parser.add_argument("--realm", choices=("sg", "sg-test"), default="sg")
@@ -132,13 +157,14 @@ def main():
     parser.add_argument("--ca-file", help="Plik PEM z zaufanymi certyfikatami CA.")
     parser.add_argument("--check-auth", action="store_true", help="Sprawdź token przez GET, bez tworzenia klientów.")
     parser.add_argument("--token-stdin", action="store_true", help="Odczytaj token z potoku stdin, bez limitu długości wiersza terminala.")
-    parser.add_argument("--apply", action="store_true", help="Wykonaj GET i POST; domyślnie pokaż tylko plan.")
+    parser.add_argument("--apply", action="store_true", help="Wykonaj plan przez Admin API; domyślnie pokaż tylko plan.")
     parser.add_argument("--sync-scopes", action="store_true", help="Dodaj brakujące optional scope’y istniejących klientów zgodnie z plikiem realmu; bez zmiany sekretów.")
+    parser.add_argument("--sync-audience", action="store_true", help="Dodaj odbiorcę sg-api w mapperze MCP istniejących klientów, bez zmiany sekretów.")
     args = parser.parse_args()
     if args.apply and args.check_auth:
         parser.error("Wybierz --apply albo --check-auth.")
-    if args.sync_scopes and args.check_auth:
-        parser.error("--check-auth nie łączy się z --sync-scopes.")
+    if (args.sync_scopes or args.sync_audience) and args.check_auth:
+        parser.error("--check-auth nie łączy się z --sync-scopes ani --sync-audience.")
     if args.token_stdin and not (args.apply or args.check_auth):
         parser.error("--token-stdin wymaga --apply albo --check-auth.")
     if args.token_stdin and sys.stdin.isatty():
@@ -161,6 +187,8 @@ def main():
             print(json.dumps(preview, indent=2, ensure_ascii=False))
             if args.sync_scopes and client.get("optionalClientScopes"):
                 print(f"Istniejący {client['clientId']}: GET scope’ów realmu i klienta, PUT brakujących przypisań: {', '.join(client['optionalClientScopes'])}.")
+            if args.sync_audience:
+                print(f"Istniejący {client['clientId']}: GET mapperów, POST lub PUT mappera odbiorców MCP, dodanie sg-api.")
         return
 
     context = create_tls_context(args.ca_file)
@@ -185,9 +213,11 @@ def main():
         if matches:
             if len(matches) != 1:
                 raise ValueError(f"Niejednoznaczny wynik wyszukiwania klienta {client['clientId']}.")
+            if args.sync_audience:
+                sync_audience_mapper(opener, endpoint, token, client, matches[0])
             if args.sync_scopes:
                 sync_optional_scopes(opener, endpoint, token, client, matches[0])
-            else:
+            elif not args.sync_audience:
                 print(f"Pominięto istniejącego klienta {client['clientId']} (bez zmian konfiguracji i sekretu).")
         else:
             missing.append(client)

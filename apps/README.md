@@ -29,8 +29,7 @@ notes are in [`keycloak/README.md`](keycloak/README.md).
 The application stack also contains Keycloak. Its realm model and migration
 notes are in [`keycloak/README.md`](keycloak/README.md).
 
-## Ocena AI trenażera CROSS
+## Próby CROSS przez MCP
 
-Integracja jest włączona w `configs/application/application.yml.tmpl`.
-Standardowy stack aplikacji montuje sekret `openai_api_key` wyłącznie w backendzie.
-[Aktywacja i kolejność wdrożenia](../docs/trenazer-cross-ai.md).
+MCP odczytuje listę prób i dane do oceny z GraphQL Accountant, w zakresie
+zalogowanego użytkownika i domeny. [Konfiguracja i kolejność wdrożenia](../docs/serwer-mcp.md#narzędzia-cross-i-przejście-z-automatycznej-oceny).

@@ -124,20 +124,13 @@ with open(os.environ['BW_TEST_VALUES'], 'a') as stream:
         self.assertNotIn('test-secret-only', result.stdout + result.stderr)
         self.assertNotIn('fake-session', result.stdout + result.stderr)
 
-    def test_provisions_the_openai_key_required_by_the_backend(self):
+    def test_provisions_all_secrets_required_by_the_backend(self):
         definitions = yaml.safe_load((ROLE / 'defaults/main.yml').read_text())['docker_swarm_secrets']
         managed = {definition['name'] for definition in definitions}
         stack = yaml.safe_load((ROOT / 'apps/stacks/application.yml').read_text())
         backend_secrets = stack['services']['backend']['secrets']
         required = {secret if isinstance(secret, str) else secret['source'] for secret in backend_secrets}
         self.assertFalse(required - managed, f'Backend secrets missing from Ansible: {required - managed}')
-        definition, = [definition for definition in definitions if definition['name'] == 'openai_api_key']
-        result, _, values = self.run_role(
-            [{'name': 'openai_api_key', 'value': 'test-openai-key'}],
-            eligible=['openai_api_key'], definitions=[definition])
-        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-        self.assertEqual([{'name': 'openai_api_key', 'value': 'test-openai-key'}], values)
-        self.assertNotIn('test-openai-key', result.stdout + result.stderr)
 
     def test_invalid_field_aborts_before_any_secret_is_changed(self):
         for invalid in ([], [{'name': 'db_password', 'value': ''}],

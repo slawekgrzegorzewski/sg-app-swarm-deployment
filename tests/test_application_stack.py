@@ -6,7 +6,7 @@ import tempfile
 import unittest
 
 
-class CrossFeedbackStackTest(unittest.TestCase):
+class ApplicationStackTest(unittest.TestCase):
     def test_application_uses_only_its_standard_stack(self):
         script = Path(__file__).resolve().parents[1] / 'apps/tools/start-stack.sh'
         with tempfile.TemporaryDirectory() as temporary:
