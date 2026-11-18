@@ -261,21 +261,27 @@ bw config server https://vault.grzegorzewski.pl
 bw login
 ```
 
-Odblokowanie i uruchomienie z katalogu `ansible`:
+Uruchomienie z katalogu `ansible`:
 
 ```bash
-export BW_SESSION="$(bw unlock --raw)"
 ./06-docker-secrets.sh home check
 ./06-docker-secrets.sh home apply
 bw lock
 unset BW_SESSION
 ```
 
+W trybie `apply` wrapper automatycznie wykonuje `bw unlock --raw` wybranym
+klientem i eksportuje wynik jako `BW_SESSION` dla procesu Ansible.
+Jeśli `BW_SESSION` jest już ustawione, zachowuje przekazaną sesję.
+Tryb `check` nie odblokowuje sejfu. Błąd odblokowania lub pusty klucz sesji
+zatrzymuje skrypt przed uruchomieniem Ansible.
 Hasło główne i 2FA podaje się interaktywnie w CLI. Sesja jest dziedziczona
 lokalnie przez `BW_SESSION`, bez umieszczania jej w argumentach poleceń,
 inventory i na serwerach. Nie uruchamiaj tego przepływu z włączonym śledzeniem
 poleceń powłoki ani debugowaniem CLI. Jeśli logujesz się przez API key,
-samo `bw login --apikey` nie odblokowuje sejfu — nadal potrzebne jest `bw unlock`.
+samo `bw login --apikey` nie odblokowuje sejfu; wrapper wykonuje odblokowanie
+przed `apply`. Przy bezpośrednim wywołaniu playbooka, z pominięciem wrappera,
+ustaw sesję samodzielnie przez `export BW_SESSION="$(bw unlock --raw)"`.
 
 Wrapper wybiera `bw` z PATH, następnie `bw.exe`; w WSL potrafi znaleźć binarkę
 Windows przez PowerShell. `BITWARDEN_CLI` pozwala wskazać inną binarkę. Logowanie

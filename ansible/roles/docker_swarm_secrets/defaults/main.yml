@@ -16,6 +16,8 @@ docker_swarm_secrets:
     field: keycloak_google_client_id
   - name: keycloak_google_client_secret
     field: keycloak_google_client_secret
+  - name: keycloak_mcp_chatgpt_client_secret
+    field: keycloak_mcp_chatgpt_client_secret
   - name: sendgrid_api_key
     field: sendgrid_api_key
   - name: nordigen_secret_id

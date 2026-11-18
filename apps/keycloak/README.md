@@ -1,17 +1,15 @@
 # Keycloak
 
-Keycloak is the source of users, authentication, and authorization metadata
-for the applications in this cluster. It is available at
-`https://auth.grzegorzewski.pl` and uses the `sg` realm.
+Keycloak przechowuje użytkowników i metadane uwierzytelniania aplikacji
+w klastrze. Jest dostępny pod `https://auth.grzegorzewski.pl` i używa realmu `sg`.
 
-The `sg` and `sg-test` realm definitions in
+Definicje realmów `sg` i `sg-test` w
 [`../configs/application/sg-realm.json`](../configs/application/sg-realm.json)
-and [`../configs/application/sg-test-realm.json`](../configs/application/sg-test-realm.json)
-are imported with override enabled whenever the Keycloak task starts. Changes
-to these files are therefore applied on deployment. The import replaces the
-existing realm configuration and can replace data managed through the Admin
-Console, including accounts. Back up the Keycloak database before changing
-these definitions or restarting Keycloak.
+oraz [`../configs/application/sg-test-realm.json`](../configs/application/sg-test-realm.json)
+są importowane podczas pierwszego startu przez `start --import-realm`.
+Istniejące realmy są pomijane, więc zmiana pliku nie aktualizuje ich automatycznie.
+W istniejącej instalacji wprowadzaj zmiany przez Admin Console lub Admin API,
+zachowując konta i pozostałą konfigurację. Przed zmianą wykonaj backup bazy.
 
 The `sg-test` realm has the same roles, groups, and OIDC clients, with the
 `sg-frontend` client restricted to `http://localhost:3000/*` for local frontend
@@ -46,10 +44,10 @@ login as appropriate.
 The `groups` claim is the source of a user's scoped permissions. Create groups
 using these paths and assign users to their leaf groups:
 
-| Meaning | Group path |
-| --- | --- |
-| administrator in domain `acme` | `/domains/acme/ADMIN` |
-| regular user in domain `acme` | `/domains/acme/USER` |
+| Meaning                              | Group path                 |
+| ------------------------------------ | -------------------------- |
+| administrator in domain `acme`       | `/domains/acme/ADMIN`      |
+| regular user in domain `acme`        | `/domains/acme/USER`       |
 | access to the accountant application | `/applications/accountant` |
 
 Assign the realm role `ADMIN` or `USER` to the corresponding domain-level
@@ -83,13 +81,14 @@ place until that application migration is deployed.
 Przed uruchomieniem playbooka sekretów dodaj poniższe pola własne do wpisu
 `SG App secrets` w Vaultwarden:
 
-| Secret | Purpose |
-| --- | --- |
-| `keycloak_db_password` | password of the PostgreSQL role `keycloak` |
-| `keycloak_bootstrap_admin_password` | one-time bootstrap administrator password |
-| `keycloak_google_client_id` | Google OAuth web client ID |
-| `keycloak_google_client_secret` | Google OAuth web client secret |
-| `brevo_smtp_password` | Brevo SMTP key used by Keycloak and Spring services |
+| Secret                               | Purpose                                             |
+| ------------------------------------ | --------------------------------------------------- |
+| `keycloak_db_password`               | password of the PostgreSQL role `keycloak`          |
+| `keycloak_bootstrap_admin_password`  | one-time bootstrap administrator password           |
+| `keycloak_google_client_id`          | Google OAuth web client ID                          |
+| `keycloak_google_client_secret`      | Google OAuth web client secret                      |
+| `keycloak_mcp_chatgpt_client_secret` | Sekret klienta OAuth `sg-mcp-chatgpt`               |
+| `brevo_smtp_password`                | Brevo SMTP key used by Keycloak and Spring services |
 
 The database initializer creates the `keycloak` role and database
 idempotently. PostgreSQL's scheduled backup already includes that database and
@@ -97,11 +96,14 @@ its role. The bootstrap account is created only while Keycloak creates the
 `master` realm; create a permanent administrator in the admin console, enable
 MFA as appropriate, and then delete the temporary `bootstrap-admin` account.
 
-## First deployment
+## Pierwsze wdrożenie
+
+Konfigurację klientów MCP z Authorization Code i PKCE S256, redirect URI ChatGPT,
+scope’y i kolejność wdrożenia opisuje [serwer MCP](../../docs/serwer-mcp.md#oauth-21-chatgpt-i-pkce).
 
 Przed odnowieniem certyfikatu skieruj DNS `auth.grzegorzewski.pl` na gateway.
 Dodaj wymagane pola własne do wpisu w Vaultwarden, uruchom playbook sekretów
 z odblokowaną sesją Bitwarden CLI i zastosuj rolę Let's Encrypt, aby certyfikat
-obejmował nową nazwę hosta. A normal release deployment then starts the database initializer and
-Keycloak. After it is available, create the permanent administrator and add
-the domain and application groups needed by the applications.
+obejmował nową nazwę hosta. Standardowe wdrożenie release'u uruchamia inicjalizator
+bazy i Keycloak. Po starcie utwórz stałego administratora oraz grupy domenowe
+i aplikacyjne wymagane przez aplikacje.

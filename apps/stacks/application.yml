@@ -205,6 +205,7 @@ services:
       - keycloak_bootstrap_admin_password
       - keycloak_google_client_id
       - keycloak_google_client_secret
+      - keycloak_mcp_chatgpt_client_secret
       - brevo_smtp_password
     networks:
       - application_network
@@ -293,6 +294,8 @@ secrets:
   keycloak_google_client_id:
     external: true
   keycloak_google_client_secret:
+    external: true
+  keycloak_mcp_chatgpt_client_secret:
     external: true
   sendgrid_api_key:
     external: true
