@@ -153,7 +153,7 @@ services:
   mcp:
     image: public.registry.grzegorzewski.pl/mcp:${MCP_IMAGE_TAG:-latest}
     environment:
-      ACCOUNTANT_GRAPHQL_URL: http://application_backend:8080/graphql
+      ACCOUNTANT_GRAPHQL_URL: http://backend:8080/graphql
     networks:
       - application_network
     logging:

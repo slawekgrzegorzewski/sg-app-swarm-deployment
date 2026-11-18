@@ -257,7 +257,7 @@ z pliku tagów, ponieważ wcześniejsze skrypty odrzucają nieznane ustawienia.
 MCP udostępnia `list_cross_attempts` i `get_cross_attempt` przez istniejący
 endpoint `/mcp`. To narzędzia protokołu MCP, bez nowych publicznych tras REST.
 [Argumenty i dane](../../sg-app/docs/agents/serwer-mcp.md#narzędzia-cross).
-Swarm ustawia `ACCOUNTANT_GRAPHQL_URL=http://application_backend:8080/graphql`.
+Swarm ustawia `ACCOUNTANT_GRAPHQL_URL=http://backend:8080/graphql`.
 MCP nie ma dostępu do bazy ani sekretu serwisowego Accountant. Przekazuje token
 bieżącego użytkownika, wystawiony dla obu usług. Accountant weryfikuje go
 ponownie i sprawdza uprawnienia domenowe oraz właściciela próby.
@@ -363,3 +363,22 @@ Na PowerShell ustaw najpierw `$env:SG_KEYCLOAK_INTEGRATION='1'`, a następnie
 uruchom to samo polecenie Python bez prefiksu zmiennej.
 Źródło zachowania mappera:
 [AudienceProtocolMapper w Keycloak 26.5.7](https://github.com/keycloak/keycloak/blob/26.5.7/services/src/main/java/org/keycloak/protocol/oidc/mappers/AudienceProtocolMapper.java).
+
+## Błąd unsupported URI przy odczycie CROSS
+
+Klient `java.net.http.HttpClient` wymaga nazwy hosta poprawnej w URI HTTP.
+Nazwa usługi Swarm `application_backend` zawiera podkreślenie: Docker DNS ją
+rozwiązuje, ale Java odrzuca `http://application_backend:8080/graphql` jako
+`unsupported URI`, zanim wykona żądanie sieciowe. `test_ping` nie wywołuje
+Accountant, dlatego może działać mimo tej błędnej konfiguracji.
+
+MCP używa `ACCOUNTANT_GRAPHQL_URL=http://backend:8080/graphql`.
+`backend` jest krótką nazwą usługi dostępną w jej sieci `application_network`.
+Nie używamy pełnej nazwy Swarm z podkreśleniem jako hosta klienta HTTP Javy.
+Nazwy z podkreśleniem w konfiguracji Nginx i etykietach logów pozostają
+prawidłowe dla tych mechanizmów.
+
+Zmiana jest konfiguracją stacka: wdrożenie release'u infrastruktury i uzgodnienie
+stacka `application` odtworzy MCP z poprawioną zmienną. Nie wymaga nowego obrazu
+MCP, migracji bazy ani zmiany OAuth. Po aktualizacji sprawdź `test_ping`,
+`list_cross_attempts` oraz `get_latest_cross_attempt`.
