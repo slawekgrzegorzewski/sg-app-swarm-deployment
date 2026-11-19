@@ -1,0 +1,32 @@
+name: deploy mcp image
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Immutable Docker image tag to deploy
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Deploy the selected MCP image
+        id: deploy_mcp
+        uses: appleboy/ssh-action@v1
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 10000
+          envs: IMAGE_TAG
+          script: |
+            set -Eeuo pipefail
+            /srv/cluster/current/tools/set-image-tag.sh mcp "$IMAGE_TAG"
+            /srv/cluster/current/tools/start-stack.sh application

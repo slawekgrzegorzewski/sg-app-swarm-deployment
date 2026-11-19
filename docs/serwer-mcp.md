@@ -253,6 +253,22 @@ Kolejność aktywacji:
 Do zakończenia odnowienia istniejący certyfikat może jeszcze nie obejmować
 nowej domeny. [Mechanizm rotacji certyfikatów](../ansible/README.md#lets-encrypt-i-rotacja-certyfikatów).
 
+## Wdrożenie istniejącego obrazu MCP
+
+Workflow [`deploy mcp image`](../.github/workflows/deploy_mcp.yml) w tym
+repozytorium wdraża wskazany, wcześniej opublikowany obraz, analogicznie
+do `deploy backend image` i `deploy banks image`.
+
+W GitHub Actions wybierz `deploy mcp image` → `Run workflow`, a następnie
+podaj wymagany `image_tag`, np. tag `sha-<commit>-<run_number>` z udanego
+workflowu budowania MCP w repozytorium backendu. Akcja korzysta z istniejących
+sekretów `SSH_HOST`, `SSH_USER`, `SSH_KEY` i portu SSH 10000. Ustawia tag
+komponentu `mcp` przez `set-image-tag.sh` i uzgadnia stack `application`.
+
+Ta akcja nie buduje ani nie publikuje obrazu i nie instaluje nowego release'u
+konfiguracji klastra. Budowanie i publikację nadal wykonuje `Build MCP Docker image`
+w repozytorium backendu, a zmiany plików konfiguracji wdraża `update cluster`.
+
 ## Pierwsze wdrożenie
 
 1. Zainstaluj release infrastruktury z definicją usługi `mcp` oraz zaktualizowanymi
@@ -267,7 +283,8 @@ nowej domeny. [Mechanizm rotacji certyfikatów](../ansible/README.md#lets-encryp
 
 Do zakończenia publikacji pierwszego obrazu nowa usługa może pozostawać
 oczekująca na obraz `latest`; workflow ustawia właściwy tag i uzgadnia stack.
-Kolejne wdrożenia wymagają już tylko uruchomienia workflowu backendu.
+Kolejne wdrożenia można wykonać workflowem backendu albo akcją `deploy mcp image`
+dla wcześniej opublikowanego tagu.
 Zmiany źródeł nie wdrażają się automatycznie przed publikacją obu repozytoriów.
 
 Tag `MCP_IMAGE_TAG` jest zapisywany razem z pozostałymi tagami
