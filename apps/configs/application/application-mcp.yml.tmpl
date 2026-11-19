@@ -1,0 +1,42 @@
+server:
+  address: 0.0.0.0
+  port: 8080
+
+spring:
+  application:
+    name: sg-mcp-app
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${MCP_ISSUER_URI:https://auth.grzegorzewski.pl/realms/sg}
+          jwk-set-uri: ${spring.security.oauth2.resourceserver.jwt.issuer-uri}/protocol/openid-connect/certs
+          audiences:
+            - ${mcp.security.resource-uri}
+  ai:
+    mcp:
+      server:
+        name: sg-mcp-app
+        version: 1.0.0
+        instructions: |
+          First call get_current_user to obtain the authenticated user's available domains.
+          This is the only tool that does not require domainPublicId.
+          If get_current_user returns exactly one domain, use that domain automatically without asking the user.
+          If it returns multiple domains, ask the user which domain to use and wait for their explicit choice.
+          Never choose the first or default domain automatically when multiple domains are available.
+          If no domains are available, stop and explain that no domain can be used.
+          Pass the selected domainPublicId to every domain tool call; reuse that selection for related steps
+          until the user changes it. If no selection has been made for this task, apply these rules first.
+        protocol: STREAMABLE
+        type: SYNC
+        capabilities:
+          resource: false
+          prompt: false
+          completion: false
+
+mcp:
+  security:
+    resource-uri: ${MCP_RESOURCE_URI:https://mcp.grzegorzewski.pl/mcp}
+
+accountant:
+  graphql-url: http://backend:8080/graphql

@@ -152,8 +152,9 @@ services:
 
   mcp:
     image: public.registry.grzegorzewski.pl/mcp:${MCP_IMAGE_TAG:-latest}
-    environment:
-      ACCOUNTANT_GRAPHQL_URL: http://backend:8080/graphql
+    configs:
+      - source: mcp_application_config
+        target: /app/application.yml
     networks:
       - application_network
     logging:
@@ -267,6 +268,10 @@ configs:
     template_driver: golang
     file: ../configs/application/application-banks.yml.tmpl
     name: banks_application_${CONFIG_VERSION:-0}
+  mcp_application_config:
+    template_driver: golang
+    file: ../configs/application/application-mcp.yml.tmpl
+    name: mcp_application_${CONFIG_VERSION:-0}
   backend_logback_config:
     file: ../configs/application/logback.xml
     name: backend_logback_${CONFIG_VERSION:-0}

@@ -20,7 +20,30 @@ HTTP przekierowuje na HTTPS kodem 308, zachowując metodę żądania.
 
 MCP nie wymaga bazy ani sekretów aplikacji. Port usługi nie jest publikowany
 bezpośrednio na hoście; ruch publiczny przechodzi przez gateway.
-Każde żądanie MCP, także `test_ping`, wymaga tokenu OAuth z Keycloaka.
+Każde żądanie MCP wymaga tokenu OAuth z Keycloaka.
+
+## Konfiguracja aplikacji MCP
+
+Plik [`apps/configs/application/application-mcp.yml.tmpl`](../apps/configs/application/application-mcp.yml.tmpl)
+zawiera konfigurację MCP dla Swarma, analogicznie do Accountant i Banks.
+Docker config `mcp_application_config` jest montowany pod `/app/application.yml`.
+Aplikacja startuje z katalogu `/app`, więc Spring Boot odczytuje ten plik
+jako zewnętrzną konfigurację, nadpisując wartości z JAR-a.
+
+Plik określa nasłuch `0.0.0.0:8080`, OAuth, transport MCP, wspólne `instructions`
+(w tym regułę wyboru domeny) oraz `accountant.graphql-url: http://backend:8080/graphql`.
+Adres Accountant należy do tego pliku; nie powielamy go w zmiennej środowiskowej
+usługi. Domyślna konfiguracja w repozytorium backendu służy uruchomieniu lokalnemu.
+Konfiguracja Swarma jest utrzymywana osobno; zmiana wartości w JAR-ze nie zastąpi
+wartości jawnie podanej w pliku wdrożeniowym.
+
+Nazwa configu `mcp_application_${CONFIG_VERSION:-0}` jest wersjonowana tak jak
+pozostałe konfiguracje aplikacji. `clusterRelease` pakuje plik razem z całym
+`apps/configs`; workflow `update cluster` instaluje release i uzgadnia stack.
+Zmiana samej konfiguracji wymaga release'u infrastruktury, bez przebudowy obrazu MCP.
+Usługa jest odtwarzana z nowym configiem, a nieużywane starsze configi usuwa
+`start-stack.sh`. Po zmianie instrukcji połącz klienta ponownie, aby pobrał je
+podczas inicjalizacji.
 
 ## OAuth 2.1, ChatGPT i PKCE
 
@@ -208,7 +231,7 @@ w celu wymuszenia importu. Dopiero potem wdróż nowy obraz MCP przez jego workf
 Dotychczasowe anonimowe klienty MCP otrzymają od tego momentu `401`.
 
 Weryfikacja: brak tokenu daje `401` z metadanymi, logowanie ChatGPT otwiera
-Keycloak, a po powrocie `test_ping` działa. Zły audience lub issuer i wygasły
+Keycloak, a po powrocie `get_current_user` zwraca profil i dostępne domeny. Zły audience lub issuer i wygasły
 token muszą zostać odrzucone.
 
 ## Domena i certyfikat
@@ -225,7 +248,7 @@ Kolejność aktywacji:
    odnowienia z nową listą domen.
 4. Na managerze wykonaj `sudo /srv/cluster/bin/renew-certificates --force-renewal`.
    Skrypt tworzy nowe sekrety TLS i aktualizuje gateway.
-5. Sprawdź klientem MCP inicjalizację i `test_ping` pod publicznym endpointem.
+5. Sprawdź klientem MCP inicjalizację i `get_current_user` pod publicznym endpointem.
 
 Do zakończenia odnowienia istniejący certyfikat może jeszcze nie obejmować
 nowej domeny. [Mechanizm rotacji certyfikatów](../ansible/README.md#lets-encrypt-i-rotacja-certyfikatów).
@@ -257,7 +280,7 @@ z pliku tagów, ponieważ wcześniejsze skrypty odrzucają nieznane ustawienia.
 MCP udostępnia `list_cross_attempts` i `get_cross_attempt` przez istniejący
 endpoint `/mcp`. To narzędzia protokołu MCP, bez nowych publicznych tras REST.
 [Argumenty i dane](../../sg-app/docs/agents/serwer-mcp.md#narzędzia-cross).
-Swarm ustawia `ACCOUNTANT_GRAPHQL_URL=http://backend:8080/graphql`.
+Plik `application-mcp.yml.tmpl` ustawia `accountant.graphql-url: http://backend:8080/graphql`.
 MCP nie ma dostępu do bazy ani sekretu serwisowego Accountant. Przekazuje token
 bieżącego użytkownika, wystawiony dla obu usług. Accountant weryfikuje go
 ponownie i sprawdza uprawnienia domenowe oraz właściciela próby.
@@ -369,16 +392,17 @@ uruchom to samo polecenie Python bez prefiksu zmiennej.
 Klient `java.net.http.HttpClient` wymaga nazwy hosta poprawnej w URI HTTP.
 Nazwa usługi Swarm `application_backend` zawiera podkreślenie: Docker DNS ją
 rozwiązuje, ale Java odrzuca `http://application_backend:8080/graphql` jako
-`unsupported URI`, zanim wykona żądanie sieciowe. `test_ping` nie wywołuje
-Accountant, dlatego może działać mimo tej błędnej konfiguracji.
+`unsupported URI`, zanim wykona żądanie sieciowe. Poprawne logowanie i inicjalizacja
+MCP nie potwierdzają dostępności GraphQL Accountant.
 
-MCP używa `ACCOUNTANT_GRAPHQL_URL=http://backend:8080/graphql`.
+MCP używa `accountant.graphql-url: http://backend:8080/graphql` z zewnętrznego pliku konfiguracji.
 `backend` jest krótką nazwą usługi dostępną w jej sieci `application_network`.
 Nie używamy pełnej nazwy Swarm z podkreśleniem jako hosta klienta HTTP Javy.
 Nazwy z podkreśleniem w konfiguracji Nginx i etykietach logów pozostają
 prawidłowe dla tych mechanizmów.
 
 Zmiana jest konfiguracją stacka: wdrożenie release'u infrastruktury i uzgodnienie
-stacka `application` odtworzy MCP z poprawioną zmienną. Nie wymaga nowego obrazu
-MCP, migracji bazy ani zmiany OAuth. Po aktualizacji sprawdź `test_ping`,
-`list_cross_attempts` oraz `get_latest_cross_attempt`.
+stacka `application` odtworzy MCP z poprawionym plikiem konfiguracji. Nie wymaga nowego obrazu
+MCP, migracji bazy ani zmiany OAuth. Po aktualizacji pobierz profil przez
+`get_current_user`, wybierz domenę i sprawdź `list_cross_attempts` oraz
+`get_latest_cross_attempt` z jej UUID.
