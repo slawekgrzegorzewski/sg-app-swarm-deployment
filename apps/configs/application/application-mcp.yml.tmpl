@@ -18,15 +18,10 @@ spring:
       server:
         name: sg-mcp-app
         version: 1.0.0
-        instructions: |
-          First call get_current_user to obtain the authenticated user's available domains.
-          This is the only tool that does not require domainPublicId.
-          If get_current_user returns exactly one domain, use that domain automatically without asking the user.
-          If it returns multiple domains, ask the user which domain to use and wait for their explicit choice.
-          Never choose the first or default domain automatically when multiple domains are available.
-          If no domains are available, stop and explain that no domain can be used.
-          Pass the selected domainPublicId to every domain tool call; reuse that selection for related steps
-          until the user changes it. If no selection has been made for this task, apply these rules first.
+        instructions: >-
+          First call get_current_user. One domain: use it without asking. Multiple domains: ask the user
+          and wait for their explicit choice; never choose first/default. No domains: stop.
+          Pass the selected domainPublicId to every other tool. Reuse it for related calls until the user changes it.
         protocol: STREAMABLE
         type: SYNC
         capabilities:
