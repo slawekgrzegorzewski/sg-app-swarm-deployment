@@ -43,6 +43,35 @@ services:
       restart_policy:
         condition: any
 
+  pgadmin:
+    image: dpage/pgadmin4:9.19
+    environment:
+      PGADMIN_DEFAULT_EMAIL: slawek@grzegorzewski.pl
+      PGADMIN_DEFAULT_PASSWORD_FILE: /run/secrets/pgadmin_admin_password
+      PGADMIN_DISABLE_POSTFIX: '1'
+      PGADMIN_CONFIG_PROXY_X_PROTO_COUNT: '1'
+      PGADMIN_CONFIG_SESSION_COOKIE_SECURE: 'True'
+    secrets:
+      - source: pgadmin_admin_password
+        uid: '5050'
+        gid: '5050'
+        mode: 0400
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - application_network
+    logging:
+      <<: *syslog_logging
+      options:
+        <<: *syslog_options
+        tag: database_pgadmin
+    deploy:
+      placement:
+        constraints:
+          - node.labels.workload.postgres == true
+      restart_policy:
+        condition: any
+
   postgres-backup:
     image: postgres:18.4
     user: '1000:1000'
@@ -132,6 +161,11 @@ secrets:
     external: true
   keycloak_db_password:
     external: true
+  pgadmin_admin_password:
+    external: true
+
+volumes:
+  pgadmin_data:
 
 networks:
   application_network:

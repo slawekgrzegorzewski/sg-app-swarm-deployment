@@ -9,6 +9,7 @@ letsencrypt_domains:
   - mcp.grzegorzewski.pl
   - vault.grzegorzewski.pl
   - grafana.grzegorzewski.pl
+  - pgadmin.grzegorzewski.pl
   - portainer.grzegorzewski.pl
   - mail.grzegorzewski.pl
   - public.registry.grzegorzewski.pl

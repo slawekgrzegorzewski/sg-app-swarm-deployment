@@ -30,6 +30,8 @@ docker_swarm_secrets:
     field: go_cardless_secret_key
   - name: postgres_password
     field: postgres_password
+  - name: pgadmin_admin_password
+    field: pgadmin_admin_password
   - name: accountant_db_password
     field: accountant_db_password
   - name: banks_db_password
